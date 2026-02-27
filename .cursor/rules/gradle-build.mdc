@@ -1,0 +1,37 @@
+---
+description: Gradle and build configuration conventions
+globs: "**/*.gradle.kts,**/libs.versions.toml,gradle.properties"
+alwaysApply: false
+---
+
+# Build Configuration
+
+## Dependency Management
+
+- All versions are centralized in `gradle/libs.versions.toml`
+- Reference dependencies via version catalog accessors (e.g., `libs.ktor.client.core`)
+- Never hardcode version strings in build files
+
+## Adding Dependencies
+
+1. Add the version to `[versions]` in `libs.versions.toml`
+2. Add the library to `[libraries]` using the version reference
+3. Reference in `build.gradle.kts` via `libs.<alias>`
+
+## KMP Source Sets
+
+- `commonMain` — shared code for all platforms
+- `androidMain` / `iosMain` — platform-specific implementations
+- `commonTest` — shared test code
+- Dependencies are declared per source set in `shared/build.gradle.kts`
+
+## Build Variants
+
+- Three product flavors: `dev`, `stag`, `prod`
+- Each has its own `applicationIdSuffix` and `NetworkConfig` base URLs
+- iOS uses matching Xcode schemes with Active Compilation Conditions
+
+## KSP
+
+- Koin annotations and Room use KSP for code generation
+- KSP dependencies are configured per target (`kspAndroid`, `kspIosArm64`, etc.)

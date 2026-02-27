@@ -1,0 +1,62 @@
+---
+description: Kotlin and KMP coding conventions for PakkiePakkie
+globs: "**/*.kt"
+alwaysApply: false
+---
+
+# Kotlin Conventions
+
+## MVVM Pattern
+
+Every feature screen needs three types and a ViewModel:
+
+```kotlin
+// State
+data class FeatureState(val items: List<Item> = emptyList()) : UIState
+
+// Events from UI
+sealed interface FeatureEvent : UIEvent {
+    data class OnItemClick(val id: String) : FeatureEvent
+}
+
+// Navigation directions
+sealed interface FeatureDirections : UIDirections {
+    data class GoToDetail(val id: String) : FeatureDirections
+}
+
+// ViewModel
+@Single
+class FeatureViewModel(...) : BaseViewModel<FeatureState, FeatureEvent, FeatureDirections>() {
+    override fun defaultUIState() = FeatureState()
+
+    override fun onEvent(event: FeatureEvent) {
+        super.onEvent(event)
+        when (event) {
+            is FeatureEvent.OnItemClick -> navigate(FeatureDirections.GoToDetail(event.id))
+        }
+    }
+}
+```
+
+## Dependency Injection
+
+- Annotate classes with `@Single` (singleton) or `@Factory` (new instance each time)
+- Koin KSP scans `nl.designlama.pakkiepakkie` automatically via `@ComponentScan`
+- Platform-specific dependencies go in `PlatformModule` (expect/actual)
+
+## Platform Code
+
+- Use `expect`/`actual` for platform-specific implementations
+- Common interface in `commonMain`, implementations in `androidMain` and `iosMain`
+
+## Coroutines
+
+- Use `viewModelScope` for ViewModel coroutines
+- Prefer `StateFlow`/`SharedFlow` over `LiveData`
+- Use `Dispatchers.Default` for CPU work, `Dispatchers.Main` for UI updates
+
+## Naming
+
+- Packages: lowercase, feature-based (`ui`, `network`, `datastore`)
+- Sealed interfaces for event/direction hierarchies
+- Data objects for stateless route definitions

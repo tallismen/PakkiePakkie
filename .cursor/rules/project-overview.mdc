@@ -1,0 +1,49 @@
+---
+description: PakkiePakkie project overview — architecture, tech stack, and conventions
+alwaysApply: true
+---
+
+# PakkiePakkie — Kotlin Multiplatform Project
+
+## Tech Stack
+
+- **Kotlin 2.2.0** with **Compose Multiplatform 1.9.0**
+- **Targets:** Android & iOS (arm64, x64, simulator arm64)
+- **DI:** Koin 4.1 with KSP annotations (`@Single`, `@Factory`, `@ComponentScan`)
+- **Networking:** Ktor 3.2 (OkHttp on Android, Darwin on iOS)
+- **Auth:** OIDC via `oidc-appsupport` / `oidc-ktor` with PKCE (S256)
+- **Storage:** DataStore Preferences + KSafe (encrypted)
+- **Navigation:** Navigation Compose 2.9 with type-safe serializable routes
+- **Serialization:** Kotlinx Serialization JSON
+- **Image loading:** Coil 3
+- **Logging:** Kermit
+
+## Module Structure
+
+- `shared/` — KMP shared module (commonMain, androidMain, iosMain)
+- `androidApp/` — Android application module
+- `iosApp/` — Xcode project embedding Compose via `ComposeUIViewController`
+
+## Architecture
+
+- **MVVM** with `BaseViewModel<UIState, UIEvent, UIDirections>`
+- ViewModels expose `state: StateFlow` and `directions: SharedFlow`
+- UI events flow up via `onEvent()`, navigation emits via `navigate()`
+- Platform-specific code uses **expect/actual** declarations
+
+## Package Layout (`shared/src/commonMain/.../pakkiepakkie/`)
+
+| Package | Purpose |
+|-----------|------------------------------------------|
+| `app` | NavHost, route definitions |
+| `base` | BaseViewModel, UIState, UIEvent, UIDirections |
+| `datastore` | Preferences, encrypted storage |
+| `di` | Koin modules (CommonModule + PlatformModule) |
+| `network` | Ktor client, auth handlers |
+| `theme` | Material3 color scheme and AppTheme |
+| `ui` | Compose screen composables |
+| `utils` | Logger (expect/actual), AppConfig |
+
+## Build Variants
+
+Three product flavors: **dev**, **stag**, **prod** — each with its own base URL and app ID suffix.

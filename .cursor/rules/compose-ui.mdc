@@ -1,0 +1,54 @@
+---
+description: Compose Multiplatform UI patterns for PakkiePakkie
+globs: "**/ui/**/*.kt,**/app/**/*.kt,**/theme/**/*.kt"
+alwaysApply: false
+---
+
+# Compose UI Conventions
+
+## Screen Structure
+
+- Each screen is a top-level `@Composable` function accepting `modifier: Modifier = Modifier`
+- Screens collect state from ViewModel and forward events:
+
+```kotlin
+@Composable
+fun FeatureScreen(
+    viewModel: FeatureViewModel = koinViewModel(),
+    modifier: Modifier = Modifier
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+
+    FeatureContent(
+        state = state,
+        onEvent = viewModel::onEvent,
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun FeatureContent(
+    state: FeatureState,
+    onEvent: (FeatureEvent) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    // Stateless UI here
+}
+```
+
+## Navigation
+
+- Routes are `@Serializable` data objects or data classes in `app/AppNavigation.kt`
+- Register destinations with `composable<Route> { }` in the NavHost
+- Collect `viewModel.directions` in a `LaunchedEffect` to trigger `navController.navigate()`
+
+## Theming
+
+- Use `MaterialTheme.colorScheme` and `MaterialTheme.typography` — never hardcode colors or text styles
+- App theme is defined in `theme/Theme.kt` as a light-only Material3 scheme
+- Custom colors live in `theme/Color.kt`
+
+## Resources
+
+- Use Compose Multiplatform resources (`composeResources/`) for strings, drawables, fonts
+- Access via generated accessors (e.g., `Res.string.*`, `Res.drawable.*`)

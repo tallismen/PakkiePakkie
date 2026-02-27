@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">PakkiePakkie</string>
+
+    <string name="ok">OK</string>
+    <string name="next">Next</string>
+    <string name="back">Back</string>
+    <string name="try_again">Try again</string>
+    <string name="unknown_error">Unknown error</string>
+    <string name="generic_error">Something went wrong</string>
+
+    <string name="error_no_internet_title">No internet</string>
+    <string name="error_no_internet_desc">Connect your phone to the internet and try again.</string>
+</resources>
