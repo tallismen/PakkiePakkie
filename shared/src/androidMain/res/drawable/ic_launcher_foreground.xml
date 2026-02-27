@@ -1,27 +1,54 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-  <group
-      android:translateX="24"
-      android:translateY="33"
-      android:scaleX="0.35"
-      android:scaleY="0.35">
-    <path
-        android:pathData="M60.49,0C81.91,0.3 100.53,11.84 110.81,28.93C86.92,34.3 70.46,50.54 65.39,55.62C65.05,43.16 65.69,18.79 34.76,27.5C43.78,34.19 44.09,63.14 44.21,73.44C44.29,80.22 43.4,83.38 47.67,84.26C50.92,84.93 66.69,84.01 69.47,83.36C85.52,66.21 122.83,14.48 159.43,39.28C137.26,38.45 124.27,54.24 116.36,78.4C108.47,102.47 85.53,119.68 58.84,119.31C25.9,118.86 -0.44,91.78 0.01,58.84C0.46,25.9 27.54,-0.44 60.48,0.01L60.49,0Z">
-      <aapt:attr name="android:fillColor">
-        <gradient
-            android:startX="126.5"
-            android:startY="7"
-            android:endX="20"
-            android:endY="103.5"
-            android:type="linear">
-          <item android:offset="0.1" android:color="#FF8667FB"/>
-          <item android:offset="0.97" android:color="#FF00E5C0"/>
-        </gradient>
-      </aapt:attr>
-    </path>
-  </group>
+
+  <!-- Box front face -->
+  <path
+      android:pathData="M30,40 L54,28 L78,40 L78,68 L54,80 L30,68 Z"
+      android:fillColor="#F0A040"/>
+
+  <!-- Box right face (darker) -->
+  <path
+      android:pathData="M54,56 L78,44 L78,68 L54,80 Z"
+      android:fillColor="#D08830"/>
+
+  <!-- Box left face -->
+  <path
+      android:pathData="M30,44 L54,56 L54,80 L30,68 Z"
+      android:fillColor="#E89838"/>
+
+  <!-- Box top face (lighter) -->
+  <path
+      android:pathData="M30,40 L54,28 L78,40 L54,52 Z"
+      android:fillColor="#F8C060"/>
+
+  <!-- Tape stripe on top -->
+  <path
+      android:pathData="M48,31 L54,28 L60,31 L54,34 Z"
+      android:fillColor="#D08830"/>
+
+  <!-- Tape stripe down front -->
+  <path
+      android:pathData="M51,52 L57,49 L57,77 L51,80 Z"
+      android:fillColor="#D08830"/>
+
+  <!-- Left eye -->
+  <path
+      android:pathData="M40,55 A2.5,2.5 0 1,1 40,54.99 Z"
+      android:fillColor="#4A3520"/>
+
+  <!-- Right eye -->
+  <path
+      android:pathData="M50,50 A2.5,2.5 0 1,1 50,49.99 Z"
+      android:fillColor="#4A3520"/>
+
+  <!-- Smile -->
+  <path
+      android:pathData="M40,60 Q45,65 51,58"
+      android:strokeColor="#4A3520"
+      android:strokeWidth="1.5"
+      android:fillColor="#00000000"/>
+
 </vector>

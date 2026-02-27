@@ -17,7 +17,7 @@ Open `iosApp/iosApp.xcodeproj` in Xcode and run the desired scheme (dev/stag/pro
 
 ## Signing
 
-Keystore files and credentials can be found on [Google Drive](https://drive.google.com/drive/folders/1DxoLwKrZqqv2jg5c-uyvbPvm9R5lnReJ?usp=drive_link).
+Keystore files and credentials
 
 ## Git merge strategy
 
