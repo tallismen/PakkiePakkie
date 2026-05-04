@@ -1,0 +1,41 @@
+---
+description: ViewModel, repository, and screen layering for PakkiePakkie MVVM
+globs: "**/ui/**/*.kt,**/*ViewModel*.kt,**/*Repository*.kt,**/network/**/*.kt,**/datastore/**/*.kt"
+alwaysApply: false
+---
+
+# ViewModel, Repository, and View
+
+## Layer boundaries
+
+| Layer | Responsibility | Must not |
+|-------|----------------|----------|
+| **View (Composable)** | Render `UIState`, forward `UIEvent`, observe one-shot navigation | Call repositories, `HttpClient`, or DataStore; own business rules |
+| **ViewModel** | Orchestrate use cases, map data → state, emit `UIDirections`, handle errors/loading | Import Compose; leak `Context`/platform types in `commonMain` |
+| **Repository** | One bounded data concern (API, preferences, cache); stable API for the VM | Navigate or hold UI-specific types; mix unrelated domains in one class |
+
+## Repository
+
+- Name with domain + `Repository` (e.g. `PreferencesRepository`, `OrdersRepository`).
+- Expose **suspend** functions for single requests and **Flow** for observable streams (already the pattern in `PreferencesRepository`).
+- Parse/map network or storage models here; ViewModels receive types that are convenient for UI or a thin domain model.
+- Register with `@Single` unless a new instance per injection is required (`@Factory`).
+- Keep `commonMain` repositories free of Android-only APIs; use `expect`/`actual` when platform bits are needed.
+
+## ViewModel (`BaseViewModel`)
+
+- Constructor-inject only repositories/use-case-style types — not `NavController`.
+- Override `defaultUIState()` with the full initial state; update with `_state.value = _state.value.copy(...)`.
+- Handle async work in **`viewModelScope.launch`** (or `launch` on the VM’s scope from `BaseViewModel`), switch context inside when calling blocking or IO-bound repo methods (`withContext(Dispatchers.IO) { ... }` if the repo is not already main-safe).
+- On success/failure, update state (e.g. loading flag, error message, data). Use **`navigate(...)`** only for navigation intents, not for “business success” that belongs in state unless the product explicitly navigates on completion.
+- Override **`onEvent`**: call `super.onEvent(event)`, then exhaustive `when` on sealed `UIEvent`s.
+
+## View
+
+- Follow the screen split in **Compose UI conventions**: outer composable collects `state` with **`collectAsStateWithLifecycle()`**, passes **`onEvent = viewModel::onEvent`** into stateless content.
+- **`LaunchedEffect`** at the screen edge: collect `viewModel.directions` and map to `NavController` / platform navigation — keep navigation wiring out of child composables when possible.
+- Do not read `viewModel.state.value` directly in composition without collection; prefer reactive collection so recompositions stay correct.
+
+## Feature layout (suggested)
+
+Colocate `FeatureScreen.kt`, `FeatureViewModel.kt`, and optional `FeatureRepository.kt` under the same feature package (e.g. `ui/feature/`) as the app grows; shared repositories stay under `datastore/`, `network/`, etc.
