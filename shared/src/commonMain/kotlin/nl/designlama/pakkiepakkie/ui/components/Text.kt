@@ -36,16 +36,16 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 @Composable
 private fun TextPreview() {
     Preview {
-        PakkiePakkieText("Preview", fontWeight = FontWeight.Normal)
-        PakkiePakkieText("Preview Bold", fontWeight = FontWeight.Bold)
+        PakkiePakkieText(text = "Preview", fontWeight = FontWeight.Normal)
+        PakkiePakkieText(text = "Preview Bold", fontWeight = FontWeight.Bold)
         PakkiePakkieText(
-            "With Leading Icon", fontWeight = FontWeight.Bold,
+            text = "With Leading Icon", fontWeight = FontWeight.Bold,
 //            leadingIcon = TextIcon(
 //                icon = painterResource(Res.drawable.ic_cross)
 //            )
         )
         PakkiePakkieText(
-            "With Trailing Icon", fontWeight = FontWeight.Bold,
+            text = "With Trailing Icon", fontWeight = FontWeight.Bold,
 //            trailingIcon = TextIcon(
 //                icon = painterResource(Res.drawable.ic_check)
 //            )
@@ -98,6 +98,7 @@ data class TextIcon(
  */
 @Composable
 fun PakkiePakkieText(
+    modifier: Modifier = Modifier,
     text: String,
     textColor: Color = Black,
     textBrush: Brush? = null,
@@ -109,7 +110,6 @@ fun PakkiePakkieText(
     leadingIcon: TextIcon? = null,
     trailingIcon: TextIcon? = null,
     textDecoration: TextDecoration? = null,
-    modifier: Modifier = Modifier
 ) {
     val resolvedMaxLines = if (singleLine) 1 else maxLines
     val resolvedOverflow = if (singleLine || maxLines != Int.MAX_VALUE) TextOverflow.Ellipsis else TextOverflow.Clip
