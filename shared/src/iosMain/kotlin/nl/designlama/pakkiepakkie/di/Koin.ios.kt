@@ -1,14 +1,14 @@
 package nl.designlama.pakkiepakkie.di
 
+import nl.designlama.pakkiepakkie.data.local.buildVehicleDatabase
+import nl.designlama.pakkiepakkie.data.local.VehicleDatabase
+import nl.designlama.pakkiepakkie.data.local.vehicleDatabaseBuilder
 import nl.designlama.pakkiepakkie.datastore.EncryptedDataStore
 import nl.designlama.pakkiepakkie.network.NetworkConfig
 import nl.designlama.pakkiepakkie.datastore.PrefsDataStore
 import nl.designlama.pakkiepakkie.datastore.createDataStore
 import nl.designlama.pakkiepakkie.datastore.dataStoreFileName
 import nl.designlama.pakkiepakkie.utils.AppConfig
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.darwin.Darwin
-import io.ktor.client.engine.darwin.KtorNSURLSessionDelegate
 import kotlinx.cinterop.ExperimentalForeignApi
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
@@ -47,6 +47,10 @@ actual class PlatformModule actual constructor() {
         single<CodeAuthFlowFactory> {
             IosCodeAuthFlowFactory()
         }
+
+        single<VehicleDatabase> {
+            buildVehicleDatabase(vehicleDatabaseBuilder())
+        }
     }
 }
 
@@ -56,6 +60,7 @@ fun initKoin(appConfig: AppConfig) {
     startKoin {
         modules(
             commonModule(),
+            viewModelModule(),
             module {
                 single { appConfig }
                 single { NetworkConfig(get()) }

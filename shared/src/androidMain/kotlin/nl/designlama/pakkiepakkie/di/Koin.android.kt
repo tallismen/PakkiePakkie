@@ -1,5 +1,8 @@
 package nl.designlama.pakkiepakkie.di
 
+import nl.designlama.pakkiepakkie.data.local.buildVehicleDatabase
+import nl.designlama.pakkiepakkie.data.local.VehicleDatabase
+import nl.designlama.pakkiepakkie.data.local.vehicleDatabaseBuilder
 import nl.designlama.pakkiepakkie.datastore.EncryptedDataStore
 import nl.designlama.pakkiepakkie.datastore.PrefsDataStore
 import nl.designlama.pakkiepakkie.datastore.createDataStore
@@ -21,6 +24,10 @@ actual class PlatformModule actual constructor() {
 
         single<EncryptedDataStore> {
             EncryptedDataStore()
+        }
+
+        single<VehicleDatabase> {
+            buildVehicleDatabase(vehicleDatabaseBuilder())
         }
     }
 }

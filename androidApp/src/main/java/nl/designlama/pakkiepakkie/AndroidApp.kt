@@ -4,6 +4,7 @@ import android.app.Application
 import nl.designlama.pakkiepakkie.di.AppContext
 import nl.designlama.pakkiepakkie.network.NetworkConfig
 import nl.designlama.pakkiepakkie.di.commonModule
+import nl.designlama.pakkiepakkie.di.viewModelModule
 import nl.designlama.pakkiepakkie.utils.AppConfig
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.logger.AndroidLogger
@@ -45,6 +46,7 @@ class AndroidApp : Application(), KoinComponent {
             logger(AndroidLogger())
             modules(
                 commonModule(),
+                viewModelModule(),
                 module {
                     single {
                         AppConfig(

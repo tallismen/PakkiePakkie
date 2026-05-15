@@ -84,7 +84,7 @@ private fun formatLicensePlateLetterDigitBoundaries(raw: String): String {
  * Formats raw plate text with dashes in RDW plate positions when the string matches at least one
  * sidecode prefix; otherwise falls back to a single dash at letter/digit transitions.
  */
-internal fun formatLicensePlate(raw: String): String {
+fun formatLicensePlate(raw: String): String {
     val layout = selectFormattingLayout(raw) ?: return formatLicensePlateLetterDigitBoundaries(raw)
     return formatPlateWithGroups(raw, layout.groupSizes)
 }
@@ -103,5 +103,5 @@ internal fun sanitizeDutchLicensePlateInput(input: String): String {
     return ""
 }
 
-internal fun sanitizeLicensePlate(input: String): String =
+fun sanitizeLicensePlate(input: String): String =
     input.filter { it.isLetterOrDigit() }.uppercase().take(MAX_RAW_LENGTH)

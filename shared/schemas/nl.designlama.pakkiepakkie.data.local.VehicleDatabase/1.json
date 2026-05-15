@@ -1,0 +1,116 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "56232aa0c36ba4d31c708a6160a9474c",
+    "entities": [
+      {
+        "tableName": "vehicle_lookup",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`kenteken` TEXT NOT NULL, `merk` TEXT NOT NULL, `handelsbenaming` TEXT NOT NULL, `massaRijklaarKg` INTEGER, `vermogenKw` REAL, `vermogenPk` REAL, `massaLedigKg` INTEGER, `cilinderinhoudCc` INTEGER, `vermogenMassaRijklaar` REAL, `primaryBrandstof` TEXT, `hybridKlasse` TEXT, `brandstofJson` TEXT, `versnellingsbakCode` TEXT, `aantalVersnellingen` INTEGER, `dataVersion` INTEGER NOT NULL, `lastViewedAt` INTEGER NOT NULL, `lastFetchedAt` INTEGER NOT NULL, PRIMARY KEY(`kenteken`))",
+        "fields": [
+          {
+            "fieldPath": "kenteken",
+            "columnName": "kenteken",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "merk",
+            "columnName": "merk",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "handelsbenaming",
+            "columnName": "handelsbenaming",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "massaRijklaarKg",
+            "columnName": "massaRijklaarKg",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "vermogenKw",
+            "columnName": "vermogenKw",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "vermogenPk",
+            "columnName": "vermogenPk",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "massaLedigKg",
+            "columnName": "massaLedigKg",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "cilinderinhoudCc",
+            "columnName": "cilinderinhoudCc",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "vermogenMassaRijklaar",
+            "columnName": "vermogenMassaRijklaar",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "primaryBrandstof",
+            "columnName": "primaryBrandstof",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "hybridKlasse",
+            "columnName": "hybridKlasse",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "brandstofJson",
+            "columnName": "brandstofJson",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "versnellingsbakCode",
+            "columnName": "versnellingsbakCode",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "aantalVersnellingen",
+            "columnName": "aantalVersnellingen",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "dataVersion",
+            "columnName": "dataVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastViewedAt",
+            "columnName": "lastViewedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastFetchedAt",
+            "columnName": "lastFetchedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "kenteken"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '56232aa0c36ba4d31c708a6160a9474c')"
+    ]
+  }
+}
