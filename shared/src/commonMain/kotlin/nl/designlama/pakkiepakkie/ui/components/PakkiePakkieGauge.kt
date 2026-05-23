@@ -1,6 +1,7 @@
 package nl.designlama.pakkiepakkie.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -22,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.min
+import nl.designlama.pakkiepakkie.theme.winChanceColor
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
@@ -31,9 +33,11 @@ fun PakkiePakkieGauge(
     sizeDp: Float = 120f,
     showLabel: Boolean = true,
 ) {
+    val darkTheme = isSystemInDarkTheme()
     val track = MaterialTheme.colorScheme.surfaceVariant
-    val accent = MaterialTheme.colorScheme.primary
+    val brand = MaterialTheme.colorScheme.primary
     val onSurface = MaterialTheme.colorScheme.onSurface
+    val progressColor = percent?.let { winChanceColor(it, darkTheme) } ?: brand
     val sweep = ((percent ?: 0f).coerceIn(0f, 100f) / 100f) * 270f
     val dim = sizeDp.dp
     Box(modifier = modifier.size(dim), contentAlignment = Alignment.Center) {
@@ -53,7 +57,7 @@ fun PakkiePakkieGauge(
             )
             if (percent != null) {
                 drawArc(
-                    color = accent,
+                    color = progressColor,
                     startAngle = 135f,
                     sweepAngle = sweep,
                     useCenter = false,
@@ -69,7 +73,7 @@ fun PakkiePakkieGauge(
                     text = buildAnnotatedString {
                         withStyle(
                             SpanStyle(
-                                color = accent,
+                                color = brand,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                             ),
@@ -78,7 +82,7 @@ fun PakkiePakkieGauge(
                         }
                         withStyle(
                             SpanStyle(
-                                color = accent,
+                                color = brand,
                                 fontSize = 7.sp,
                                 fontWeight = FontWeight.Normal,
                             ),
@@ -90,7 +94,7 @@ fun PakkiePakkieGauge(
             }
             Text(
                 text = percent?.let { "${it.toInt()}%" } ?: "—",
-                color = onSurface,
+                color = if (percent != null) progressColor else onSurface,
                 style = if (showLabel) {
                     MaterialTheme.typography.headlineSmall
                 } else {
@@ -106,13 +110,13 @@ private fun PreviewContent() {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         PakkiePakkieGauge(percent = null, sizeDp = 100f)
         Spacer(modifier = Modifier.height(16.dp))
-        PakkiePakkieGauge(percent = 0f, sizeDp = 100f)
+        PakkiePakkieGauge(percent = 15f, sizeDp = 100f)
         Spacer(modifier = Modifier.height(16.dp))
-        PakkiePakkieGauge(percent = 33f, sizeDp = 100f)
+        PakkiePakkieGauge(percent = 50f, sizeDp = 100f)
         Spacer(modifier = Modifier.height(16.dp))
-        PakkiePakkieGauge(percent = 66f, sizeDp = 100f)
+        PakkiePakkieGauge(percent = 75f, sizeDp = 100f)
         Spacer(modifier = Modifier.height(16.dp))
-        PakkiePakkieGauge(percent = 100f, sizeDp = 100f)
+        PakkiePakkieGauge(percent = 95f, sizeDp = 100f)
         Spacer(modifier = Modifier.height(16.dp))
         PakkiePakkieGauge(percent = 72.5f, sizeDp = 140f)
     }
@@ -133,4 +137,3 @@ private fun PakkiePakkieGaugeDarkPreview() {
         PreviewContent()
     }
 }
-

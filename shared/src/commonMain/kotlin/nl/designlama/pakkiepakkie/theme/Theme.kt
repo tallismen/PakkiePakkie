@@ -36,7 +36,7 @@ private val LightColorScheme = lightColorScheme(
     scrim = Color(0x991F1F1F),
     inverseSurface = Color(0xFF2E3440),
     inverseOnSurface = Color(0xFFE8ECF2),
-    inversePrimary = Color(0xFFB4C4FF),
+    inversePrimary = Color(0xFF8ECAE6),
     surfaceTint = Primary,
 )
 
