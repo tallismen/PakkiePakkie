@@ -14,11 +14,13 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.runComposeUiTest
+import kotlin.test.Ignore
 import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class)
 class ComposeTest {
 
+    @Ignore // runComposeUiTest is not supported on the JVM Android unit test host for this module.
     @Test
     fun simpleCheck() = runComposeUiTest {
         setContent {

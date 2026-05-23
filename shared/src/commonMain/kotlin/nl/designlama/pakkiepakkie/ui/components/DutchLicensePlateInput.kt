@@ -7,10 +7,8 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -146,36 +144,49 @@ fun DutchLicensePlateInput(
     }
 }
 
+@Composable
+private fun PreviewContent() {
+    Column {
+        DutchLicensePlateInput(
+            value = "",
+            onValueChange = { _, _ -> },
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        DutchLicensePlateInput(
+            value = "PL7",
+            onValueChange = { _, _ -> },
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        DutchLicensePlateInput(
+            value = "PL700K",
+            onValueChange = { _, _ -> },
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        DutchLicensePlateInput(
+            value = "GBB01B",
+            onValueChange = { _, _ -> },
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        var interactive by remember { mutableStateOf("") }
+        DutchLicensePlateInput(
+            value = interactive,
+            onValueChange = { raw, _ -> interactive = raw },
+        )
+    }
+}
+
 @Preview
 @Composable
-private fun DutchLicensePlateInputPreview() {
-    Preview {
-        Column {
-            DutchLicensePlateInput(
-                value = "",
-                onValueChange = { _, _ -> },
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            DutchLicensePlateInput(
-                value = "PL7",
-                onValueChange = { _, _ -> },
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            DutchLicensePlateInput(
-                value = "PL700K",
-                onValueChange = { _, _ -> },
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            DutchLicensePlateInput(
-                value = "GBB01B",
-                onValueChange = { _, _ -> },
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            var interactive by remember { mutableStateOf("") }
-            DutchLicensePlateInput(
-                value = interactive,
-                onValueChange = { raw, _ -> interactive = raw },
-            )
-        }
+private fun DutchLicensePlateInputLightPreview() {
+    PreviewContainer(isDarkTheme = false) {
+        PreviewContent()
+    }
+}
+
+@Preview
+@Composable
+private fun DutchLicensePlateInputDarkPreview() {
+    PreviewContainer(isDarkTheme = true) {
+        PreviewContent()
     }
 }

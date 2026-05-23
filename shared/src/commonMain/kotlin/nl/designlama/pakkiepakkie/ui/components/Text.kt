@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -31,25 +32,37 @@ import nl.designlama.pakkiepakkie.ui.extentions.nonScaledSp
 import nl.designlama.pakkiepakkie.ui.fonts.getFontFamily
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
-
-@Preview
 @Composable
-private fun TextPreview() {
-    Preview {
-        PakkiePakkieText(text = "Preview", fontWeight = FontWeight.Normal)
-        PakkiePakkieText(text = "Preview Bold", fontWeight = FontWeight.Bold)
-        PakkiePakkieText(
-            text = "With Leading Icon", fontWeight = FontWeight.Bold,
+private fun PreviewContent() {
+    PakkiePakkieText(text = "Preview", fontWeight = FontWeight.Normal)
+    PakkiePakkieText(text = "Preview Bold", fontWeight = FontWeight.Bold)
+    PakkiePakkieText(
+        text = "With Leading Icon", fontWeight = FontWeight.Bold,
 //            leadingIcon = TextIcon(
 //                icon = painterResource(Res.drawable.ic_cross)
 //            )
-        )
-        PakkiePakkieText(
-            text = "With Trailing Icon", fontWeight = FontWeight.Bold,
+    )
+    PakkiePakkieText(
+        text = "With Trailing Icon", fontWeight = FontWeight.Bold,
 //            trailingIcon = TextIcon(
 //                icon = painterResource(Res.drawable.ic_check)
 //            )
-        )
+    )
+}
+
+@Preview
+@Composable
+private fun TextLightPreview() {
+    PreviewContainer(isDarkTheme = false) {
+        PreviewContent()
+    }
+}
+
+@Preview
+@Composable
+private fun TextDarkPreview() {
+    PreviewContainer(isDarkTheme = true) {
+        PreviewContent()
     }
 }
 
@@ -100,7 +113,7 @@ data class TextIcon(
 fun PakkiePakkieText(
     modifier: Modifier = Modifier,
     text: String,
-    textColor: Color = Black,
+    textColor: Color = MaterialTheme.colorScheme.onBackground,
     textBrush: Brush? = null,
     fontSize: TextUnit = 16.sp.nonScaledSp,
     fontWeight: FontWeight = FontWeight.SemiBold,

@@ -2,6 +2,9 @@ import org.jetbrains.compose.ExperimentalComposeLibrary
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSetTree
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 
+fun escapeForBuildConfigString(value: String): String =
+    value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "")
+
 plugins {
     alias(libs.plugins.multiplatform)
     alias(libs.plugins.compose.compiler)
@@ -61,6 +64,7 @@ kotlin {
             implementation(libs.coil.network.ktor)
             implementation(libs.kotlinx.datetime)
             implementation(libs.room.runtime)
+            implementation(libs.sqlite.bundled)
             implementation(libs.androidx.datastore.core)
             implementation(libs.androidx.datastore.preferences)
             implementation(libs.androidx.datastore.preferences.core)
@@ -115,6 +119,9 @@ dependencies {
 }
 
 buildConfig {
+    val rdwAppToken = (project.findProperty("RDW_APP_TOKEN") ?: rootProject.findProperty("RDW_APP_TOKEN"))?.toString().orEmpty()
+    val rdwTokenEscaped = escapeForBuildConfigString(rdwAppToken)
+
     buildConfigField("String", "BASE_URL_API_DEV", "\"https://api-dev.designlama.nl\"")
     buildConfigField("String", "BASE_URL_API_STAG", "\"https://api-staging.designlama.nl\"")
     buildConfigField("String", "BASE_URL_API_PRD", "\"https://api.designlama.nl\"")
@@ -122,6 +129,9 @@ buildConfig {
     buildConfigField("String", "BASE_URL_AUTH_DEV", "\"https://auth-dev.designlama.nl\"")
     buildConfigField("String", "BASE_URL_AUTH_STAG", "\"https://auth-staging.designlama.nl\"")
     buildConfigField("String", "BASE_URL_AUTH_PRD", "\"https://auth.designlama.nl\"")
+
+    buildConfigField("String", "RDW_OPEN_DATA_BASE_URL", "\"https://opendata.rdw.nl/resource/\"")
+    buildConfigField("String", "RDW_APP_TOKEN", "\"$rdwTokenEscaped\"")
 }
 
 room {
@@ -148,25 +158,21 @@ ksp {
 }
 
 project.afterEvaluate {
+    // Room generates `VehicleDatabase_Impl` (etc.) per platform; these tasks must stay enabled.
     tasks.named("kspDebugKotlinAndroid") {
         dependsOn(tasks.named("kspCommonMainKotlinMetadata"))
-        enabled = false
     }
     tasks.named("kspReleaseKotlinAndroid") {
         dependsOn(tasks.named("kspCommonMainKotlinMetadata"))
-        enabled = false
     }
     tasks.named("kspKotlinIosX64") {
         dependsOn(tasks.named("kspCommonMainKotlinMetadata"))
-        enabled = false
     }
     tasks.named("kspKotlinIosArm64") {
         dependsOn(tasks.named("kspCommonMainKotlinMetadata"))
-        enabled = false
     }
     tasks.named("kspKotlinIosSimulatorArm64") {
         dependsOn(tasks.named("kspCommonMainKotlinMetadata"))
-        enabled = false
     }
 }
 
