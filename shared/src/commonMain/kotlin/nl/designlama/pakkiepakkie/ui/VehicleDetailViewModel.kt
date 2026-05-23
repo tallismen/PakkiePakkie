@@ -1,6 +1,7 @@
 package nl.designlama.pakkiepakkie.ui
 
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import nl.designlama.pakkiepakkie.base.BaseViewModel
@@ -18,10 +19,20 @@ data class VehicleDetailState(
     val loading: Boolean = true,
     val detail: VehicleLicensePlateInfo? = null,
     val my: VehicleLicensePlateInfo? = null,
+    val myVehicleKenteken: String? = null,
     val errorMessage: String? = null,
-) : UIState
+) : UIState {
+    fun isMyVehicle(kenteken: String): Boolean {
+        val norm = sanitizeLicensePlate(kenteken)
+        val myNorm = myVehicleKenteken?.let { sanitizeLicensePlate(it) }
+        return norm.length == 6 && norm == myNorm
+    }
+}
 
-sealed interface VehicleDetailEvent : UIEvent
+sealed interface VehicleDetailEvent : UIEvent {
+    data object OnSetAsMyVehicle : VehicleDetailEvent
+    data object OnClearAsMyVehicle : VehicleDetailEvent
+}
 
 class VehicleDetailViewModel(
     private val vehicleLicenseRepository: VehicleLicenseRepository,
@@ -30,6 +41,44 @@ class VehicleDetailViewModel(
 ) : BaseViewModel<VehicleDetailState, VehicleDetailEvent, UIDirections>() {
 
     init {
+        loadVehicle()
+        viewModelScope.launch {
+            userVehicleRepository.myVehicleKentekenFlow().collectLatest { myK ->
+                _state.value = _state.value.copy(
+                    myVehicleKenteken = myK,
+                    my = resolveMyVehicleInfo(myK),
+                )
+            }
+        }
+    }
+
+    private suspend fun resolveMyVehicleInfo(myK: String?): VehicleLicensePlateInfo? {
+        val myNorm = myK?.let { sanitizeLicensePlate(it) }?.takeIf { it.length == 6 } ?: return null
+        return vehicleLicenseRepository.getCachedEntity(myNorm)
+            ?.takeIf { it.dataVersion >= VehicleLookupDataVersion.FULL }
+            ?.toVehicleLicensePlateInfo()
+    }
+
+    override fun defaultUIState(): VehicleDetailState = VehicleDetailState()
+
+    override fun onEvent(event: VehicleDetailEvent) {
+        super.onEvent(event)
+        when (event) {
+            VehicleDetailEvent.OnSetAsMyVehicle -> {
+                val detail = _state.value.detail ?: return
+                viewModelScope.launch {
+                    runCatching { userVehicleRepository.setMyVehicle(detail.kenteken) }
+                }
+            }
+            VehicleDetailEvent.OnClearAsMyVehicle -> {
+                viewModelScope.launch {
+                    runCatching { userVehicleRepository.clearMyVehicle() }
+                }
+            }
+        }
+    }
+
+    private fun loadVehicle() {
         viewModelScope.launch {
             val norm = sanitizeLicensePlate(kenteken)
             if (norm.length != 6) {
@@ -51,14 +100,13 @@ class VehicleDetailViewModel(
                 return@launch
             }
             val myK = userVehicleRepository.myVehicleKentekenFlow().first()
-            val myNorm = myK?.let { sanitizeLicensePlate(it) }?.takeIf { it.length == 6 }
-            val myEntity = myNorm?.let { vehicleLicenseRepository.getCachedEntity(it) }
-            val myInfo = myEntity
-                ?.takeIf { it.dataVersion >= VehicleLookupDataVersion.FULL }
-                ?.toVehicleLicensePlateInfo()
-            _state.value = VehicleDetailState(loading = false, detail = detail, my = myInfo, errorMessage = null)
+            _state.value = VehicleDetailState(
+                loading = false,
+                detail = detail,
+                my = resolveMyVehicleInfo(myK),
+                myVehicleKenteken = myK,
+                errorMessage = null,
+            )
         }
     }
-
-    override fun defaultUIState(): VehicleDetailState = VehicleDetailState()
 }

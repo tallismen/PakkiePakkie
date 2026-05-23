@@ -13,14 +13,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -32,7 +32,7 @@ import nl.designlama.pakkiepakkie.domain.units.PowerUnit
 import nl.designlama.pakkiepakkie.domain.units.UnitPreferences
 import nl.designlama.pakkiepakkie.domain.units.UnitPreset
 import nl.designlama.pakkiepakkie.domain.units.WeightUnit
-import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieText
+import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieTopBar
 import nl.designlama.pakkiepakkie.ui.components.PreviewContainer
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
@@ -61,70 +61,99 @@ private fun SettingsContent(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        CenterAlignedTopAppBar(
-            title = { Text("Instellingen") },
-            navigationIcon = {
-                TextButton(onClick = onBack) { Text("Terug") }
-            },
-        )
-
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = {
+            PakkiePakkieTopBar(
+                title = "Instellingen",
+                onBack = onBack,
+            )
+        },
+    ) { paddingValues ->
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            PakkiePakkieText(
-                text = "Voorbeeld: ${state.previewPower} · ${state.previewWeight}",
-                textColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            Spacer(Modifier.height(8.dp))
-            SectionTitle("Preset")
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                ),
             ) {
-                UnitPreset.entries.forEach { preset ->
-                    FilterChip(
-                        selected = state.preferences.preset == preset,
-                        onClick = { onEvent(SettingsEvent.OnPresetSelected(preset)) },
-                        label = { Text(presetLabel(preset)) },
+                Text(
+                    text = "Voorbeeld: ${state.previewPower} · ${state.previewWeight}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(16.dp),
+                )
+            }
+
+            SettingsSection(title = "Preset") {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    UnitPreset.entries.forEach { preset ->
+                        FilterChip(
+                            selected = state.preferences.preset == preset,
+                            onClick = { onEvent(SettingsEvent.OnPresetSelected(preset)) },
+                            label = { Text(presetLabel(preset)) },
+                        )
+                    }
+                }
+            }
+
+            SettingsSection(title = "Vermogen") {
+                PowerUnit.entries.forEach { unit ->
+                    UnitRadioRow(
+                        label = powerUnitLabel(unit),
+                        selected = state.preferences.powerUnit == unit,
+                        onClick = { onEvent(SettingsEvent.OnPowerUnitSelected(unit)) },
                     )
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
-            SectionTitle("Vermogen")
-            PowerUnit.entries.forEach { unit ->
-                UnitRadioRow(
-                    label = powerUnitLabel(unit),
-                    selected = state.preferences.powerUnit == unit,
-                    onClick = { onEvent(SettingsEvent.OnPowerUnitSelected(unit)) },
-                )
-            }
-
-            Spacer(Modifier.height(16.dp))
-            SectionTitle("Gewicht")
-            WeightUnit.entries.forEach { unit ->
-                UnitRadioRow(
-                    label = weightUnitLabel(unit),
-                    selected = state.preferences.weightUnit == unit,
-                    onClick = { onEvent(SettingsEvent.OnWeightUnitSelected(unit)) },
-                )
+            SettingsSection(title = "Gewicht") {
+                WeightUnit.entries.forEach { unit ->
+                    UnitRadioRow(
+                        label = weightUnitLabel(unit),
+                        selected = state.preferences.weightUnit == unit,
+                        onClick = { onEvent(SettingsEvent.OnWeightUnitSelected(unit)) },
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun SectionTitle(text: String) {
-    PakkiePakkieText(
-        text = text,
-        textColor = MaterialTheme.colorScheme.onSurface,
-    )
-    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+private fun SettingsSection(
+    title: String,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(8.dp))
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            ),
+        ) {
+            Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                content()
+            }
+        }
+    }
 }
 
 @Composable
@@ -142,14 +171,14 @@ private fun UnitRadioRow(
                 onClick = onClick,
                 role = Role.RadioButton,
             )
-            .padding(vertical = 4.dp),
+            .padding(horizontal = 8.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         RadioButton(selected = selected, onClick = null)
         Text(
             text = label,
             style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(start = 8.dp),
+            modifier = Modifier.padding(start = 4.dp),
         )
     }
 }

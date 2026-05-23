@@ -11,18 +11,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import nl.designlama.pakkiepakkie.datastore.UnitPreferencesRepository
@@ -32,6 +36,7 @@ import nl.designlama.pakkiepakkie.network.rdw.PakkiePakkieCalculator
 import nl.designlama.pakkiepakkie.network.rdw.VehicleLicensePlateInfo
 import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieGauge
 import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieText
+import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieTopBar
 import nl.designlama.pakkiepakkie.ui.components.PreviewContainer
 import nl.designlama.pakkiepakkie.ui.components.formatLicensePlate
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -69,6 +74,7 @@ fun VehicleCompareScreen(
         unitPreferences = unitPreferences,
         displayFormatter = displayFormatter,
         onBack = onBack,
+        onEvent = viewModel::onEvent,
         modifier = modifier,
     )
 }
@@ -81,21 +87,24 @@ private fun VehicleCompareScaffold(
     unitPreferences: UnitPreferences,
     displayFormatter: VehicleDisplayFormatter,
     onBack: () -> Unit,
+    onEvent: (VehicleDetailEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-
-    Column(modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        CenterAlignedTopAppBar(
-            title = { Text(text = formatLicensePlate(kenteken)) },
-            navigationIcon = {
-                TextButton(onClick = onBack) { Text("Terug") }
-            },
-        )
-
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = {
+            PakkiePakkieTopBar(
+                title = formatLicensePlate(kenteken),
+                onBack = onBack,
+            )
+        },
+    ) { paddingValues ->
         when {
             state.loading -> {
                 Column(
-                    modifier = Modifier.fillMaxSize().padding(24.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
@@ -104,13 +113,15 @@ private fun VehicleCompareScaffold(
             }
 
             state.errorMessage != null -> {
-                val err = state.errorMessage.orEmpty()
                 Column(
-                    modifier = Modifier.fillMaxSize().padding(24.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .padding(16.dp),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    PakkiePakkieText(text = err, textColor = MaterialTheme.colorScheme.error)
+                    PakkiePakkieText(text = state.errorMessage.orEmpty(), textColor = MaterialTheme.colorScheme.error)
                     Spacer(Modifier.height(16.dp))
                     Button(onClick = onBack) { Text("Sluiten") }
                 }
@@ -118,11 +129,16 @@ private fun VehicleCompareScaffold(
 
             state.detail != null -> {
                 VehicleCompareContent(
-                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                     detail = state.detail!!,
-                    my = state.my,
+                    state = state,
                     unitPreferences = unitPreferences,
                     displayFormatter = displayFormatter,
+                    onEvent = onEvent,
                     onBack = onBack,
                 )
             }
@@ -133,81 +149,154 @@ private fun VehicleCompareScaffold(
 @Composable
 private fun VehicleCompareContent(
     detail: VehicleLicensePlateInfo,
-    my: VehicleLicensePlateInfo?,
+    state: VehicleDetailState,
     unitPreferences: UnitPreferences,
     displayFormatter: VehicleDisplayFormatter,
+    onEvent: (VehicleDetailEvent) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-
+    val my = state.my
     val winPct = my?.let { PakkiePakkieCalculator.winProbabilityPercent(it, detail) }
-    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-        PakkiePakkieText(
-            text = "Jouw kans om te winnen vs dit voertuig",
-            textColor = MaterialTheme.colorScheme.onSurface,
+    val isMyVehicle = state.isMyVehicle(detail.kenteken)
+
+    Column(modifier = modifier) {
+        Text(
+            text = "${detail.merk} ${detail.handelsbenaming}".trim(),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
+
+        Spacer(Modifier.height(16.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            ),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = "Jouw kans om te winnen vs dit voertuig",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(Modifier.height(8.dp))
+                PakkiePakkieGauge(percent = winPct, sizeDp = 140f)
+                if (my == null) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "Stel je auto in via ☆ op de startpagina om een percentage te zien.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            ),
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                CompareRow(
+                    label = displayFormatter.powerLabel(unitPreferences),
+                    detailText = displayFormatter.formatPower(detail.vermogenKw, unitPreferences),
+                    myText = displayFormatter.formatPower(my?.vermogenKw, unitPreferences),
+                    trend = compareHigherBetter(detail.vermogenKw, my?.vermogenKw),
+                )
+                CompareDivider()
+                CompareRow(
+                    label = "Pk per kilo",
+                    detailText = displayFormatter.formatPkPerKilo(detail),
+                    myText = my?.let { displayFormatter.formatPkPerKilo(it) } ?: "—",
+                    trend = compareHigherBetter(
+                        displayFormatter.pkPerKilo(detail),
+                        my?.let { displayFormatter.pkPerKilo(it) },
+                    ),
+                )
+                CompareDivider()
+                CompareRow(
+                    label = displayFormatter.weightLabel(unitPreferences, rijklaar = true),
+                    detailText = displayFormatter.formatWeight(detail.massaRijklaarKg, unitPreferences),
+                    myText = displayFormatter.formatWeight(my?.massaRijklaarKg, unitPreferences),
+                    trend = compareLowerBetter(
+                        detail.massaRijklaarKg?.toDouble(),
+                        my?.massaRijklaarKg?.toDouble(),
+                    ),
+                )
+                CompareDivider()
+                CompareRow(
+                    label = displayFormatter.weightLabel(unitPreferences, rijklaar = false),
+                    detailText = displayFormatter.formatWeight(detail.massaLedigKg, unitPreferences),
+                    myText = displayFormatter.formatWeight(my?.massaLedigKg, unitPreferences),
+                    trend = compareLowerBetter(
+                        detail.massaLedigKg?.toDouble(),
+                        my?.massaLedigKg?.toDouble(),
+                    ),
+                )
+                CompareDivider()
+                CompareRow(
+                    label = "Brandstof",
+                    detailText = detail.brandstofOmschrijvingen.takeIf { it.isNotEmpty() }?.joinToString(", ") ?: "—",
+                    myText = my?.brandstofOmschrijvingen.orEmpty().joinToString(", ").ifBlank { "—" },
+                    trend = CompareTrend.Neutral,
+                )
+                CompareDivider()
+                CompareRow(
+                    label = "Versnellingsbak",
+                    detailText = versnellingsbakDisplayNl(detail.versnellingsbakCode),
+                    myText = versnellingsbakDisplayNl(my?.versnellingsbakCode),
+                    trend = compareTransmission(detail, my),
+                )
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        if (isMyVehicle) {
+            OutlinedButton(
+                onClick = { onEvent(VehicleDetailEvent.OnClearAsMyVehicle) },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Niet meer mijn auto")
+            }
+        } else {
+            OutlinedButton(
+                onClick = { onEvent(VehicleDetailEvent.OnSetAsMyVehicle) },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Dit is mijn auto")
+            }
+        }
+
         Spacer(Modifier.height(8.dp))
-        PakkiePakkieGauge(percent = winPct, sizeDp = 140f)
-        if (my == null) {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = "Stel je auto in via de startpagina om een percentage te zien.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
+
+        Button(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
+            Text("Klaar")
         }
     }
-    Spacer(Modifier.height(24.dp))
-    CompareRow(
-        label = displayFormatter.powerLabel(unitPreferences),
-        detailText = displayFormatter.formatPower(detail.vermogenKw, unitPreferences),
-        myText = displayFormatter.formatPower(my?.vermogenKw, unitPreferences),
-        trend = compareHigherBetter(detail.vermogenKw, my?.vermogenKw),
+}
+
+@Composable
+private fun CompareDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        color = MaterialTheme.colorScheme.outlineVariant,
     )
-    CompareRow(
-        label = "Pk per kilo",
-        detailText = displayFormatter.formatPkPerKilo(detail),
-        myText = my?.let { displayFormatter.formatPkPerKilo(it) } ?: "—",
-        trend = compareHigherBetter(
-            displayFormatter.pkPerKilo(detail),
-            my?.let { displayFormatter.pkPerKilo(it) },
-        ),
-    )
-    CompareRow(
-        label = displayFormatter.weightLabel(unitPreferences, rijklaar = true),
-        detailText = displayFormatter.formatWeight(detail.massaRijklaarKg, unitPreferences),
-        myText = displayFormatter.formatWeight(my?.massaRijklaarKg, unitPreferences),
-        trend = compareLowerBetter(
-            detail.massaRijklaarKg?.toDouble(),
-            my?.massaRijklaarKg?.toDouble(),
-        ),
-    )
-    CompareRow(
-        label = displayFormatter.weightLabel(unitPreferences, rijklaar = false),
-        detailText = displayFormatter.formatWeight(detail.massaLedigKg, unitPreferences),
-        myText = displayFormatter.formatWeight(my?.massaLedigKg, unitPreferences),
-        trend = compareLowerBetter(
-            detail.massaLedigKg?.toDouble(),
-            my?.massaLedigKg?.toDouble(),
-        ),
-    )
-    CompareRow(
-        label = "Brandstof",
-        detailText = detail.brandstofOmschrijvingen.takeIf { it.isNotEmpty() }?.joinToString(", ") ?: "—",
-        myText = my?.brandstofOmschrijvingen.orEmpty().joinToString(", ").ifBlank { "—" },
-        trend = CompareTrend.Neutral,
-    )
-    CompareRow(
-        label = "Versnellingsbak",
-        detailText = versnellingsbakDisplayNl(detail.versnellingsbakCode),
-        myText = versnellingsbakDisplayNl(my?.versnellingsbakCode),
-        trend = compareTransmission(detail, my),
-    )
-    Spacer(Modifier.height(24.dp))
-    Button(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-        Text("Klaar")
-    }
 }
 
 private fun compareHigherBetter(detail: Double?, my: Double?): CompareTrend {
@@ -249,33 +338,66 @@ private fun CompareRow(
 ) {
     val good = MaterialTheme.colorScheme.primary
     val bad = MaterialTheme.colorScheme.error
-    val neutral = MaterialTheme.colorScheme.onSurfaceVariant
+    val neutral = MaterialTheme.colorScheme.onSurface
     val (arrow, detailColor) = when (trend) {
         CompareTrend.DetailBetter -> "↑" to good
         CompareTrend.DetailWorse -> "↓" to bad
         CompareTrend.Neutral -> "" to neutral
     }
-    Column(modifier = modifier.padding(vertical = 8.dp)) {
-        PakkiePakkieText(text = label, textColor = MaterialTheme.colorScheme.onSurface)
-        Spacer(Modifier.height(4.dp))
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Spacer(Modifier.height(6.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(
-                text = "Dit: $detailText $arrow",
-                style = MaterialTheme.typography.bodyLarge,
-                color = detailColor,
+            CompareValueCell(
                 modifier = Modifier.weight(1f),
+                caption = "Dit",
+                value = detailText,
+                valueColor = detailColor,
+                suffix = arrow,
             )
-            Text(
-                text = "Jouw: $myText",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.End,
+            CompareValueCell(
+                modifier = Modifier.weight(1f),
+                caption = "Jouw",
+                value = myText,
+                valueColor = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
+}
+
+@Composable
+private fun CompareValueCell(
+    caption: String,
+    value: String,
+    valueColor: androidx.compose.ui.graphics.Color,
+    modifier: Modifier = Modifier,
+    suffix: String = "",
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = caption,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = if (suffix.isBlank()) value else "$value $suffix",
+            style = MaterialTheme.typography.bodyLarge,
+            color = valueColor,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -314,11 +436,13 @@ private fun VehicleComparePreviewContent() {
                 versnellingsbakCode = "A",
                 aantalVersnellingen = 8,
             ),
+            myVehicleKenteken = "ABC12D",
             errorMessage = null,
         ),
         unitPreferences = UnitPreferences(),
         displayFormatter = formatter,
         onBack = {},
+        onEvent = {},
     )
 }
 

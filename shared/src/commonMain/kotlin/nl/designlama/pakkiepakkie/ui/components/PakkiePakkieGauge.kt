@@ -29,6 +29,7 @@ fun PakkiePakkieGauge(
     percent: Float?,
     modifier: Modifier = Modifier,
     sizeDp: Float = 120f,
+    showLabel: Boolean = true,
 ) {
     val track = MaterialTheme.colorScheme.surfaceVariant
     val accent = MaterialTheme.colorScheme.primary
@@ -63,32 +64,38 @@ fun PakkiePakkieGauge(
             }
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = buildAnnotatedString {
-                    withStyle(
-                        SpanStyle(
-                            color = accent,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                        ),
-                    ) {
-                        append("PakkiePakkie")
-                    }
-                    withStyle(
-                        SpanStyle(
-                            color = accent,
-                            fontSize = 7.sp,
-                            fontWeight = FontWeight.Normal,
-                        ),
-                    ) {
-                        append("™")
-                    }
-                },
-            )
+            if (showLabel) {
+                Text(
+                    text = buildAnnotatedString {
+                        withStyle(
+                            SpanStyle(
+                                color = accent,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                            ),
+                        ) {
+                            append("PakkiePakkie")
+                        }
+                        withStyle(
+                            SpanStyle(
+                                color = accent,
+                                fontSize = 7.sp,
+                                fontWeight = FontWeight.Normal,
+                            ),
+                        ) {
+                            append("™")
+                        }
+                    },
+                )
+            }
             Text(
                 text = percent?.let { "${it.toInt()}%" } ?: "—",
                 color = onSurface,
-                style = MaterialTheme.typography.headlineSmall,
+                style = if (showLabel) {
+                    MaterialTheme.typography.headlineSmall
+                } else {
+                    MaterialTheme.typography.labelLarge
+                },
             )
         }
     }
