@@ -6,4 +6,7 @@ object VehicleLookupDataVersion {
 
     /** Full RDW + TGK + brandstof payload persisted. */
     const val FULL: Int = 2
+
+    /** Includes top speed and chipped flag. */
+    const val V3: Int = 3
 }

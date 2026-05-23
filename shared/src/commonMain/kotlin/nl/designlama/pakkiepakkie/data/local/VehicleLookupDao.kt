@@ -16,6 +16,9 @@ interface VehicleLookupDao {
     @Query("UPDATE vehicle_lookup SET lastViewedAt = :at WHERE kenteken = :kenteken")
     suspend fun updateLastViewedAt(kenteken: String, at: Long)
 
+    @Query("UPDATE vehicle_lookup SET isChipped = :isChipped WHERE kenteken = :kenteken")
+    suspend fun updateIsChipped(kenteken: String, isChipped: Boolean)
+
     @Query("SELECT * FROM vehicle_lookup ORDER BY lastViewedAt DESC LIMIT :limit")
     fun observeRecent(limit: Int): Flow<List<VehicleLookupEntity>>
 }

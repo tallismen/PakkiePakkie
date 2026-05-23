@@ -7,8 +7,12 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -81,6 +85,7 @@ private class LicensePlateOffsetMapping(private val rawText: String) : OffsetMap
  * @param value Raw input: uppercase letters and digits only, no dashes (max 6 characters).
  *   Input is limited to prefixes allowed by RDW sidecodes 1–14 (valid letter/digit block lengths).
  * @param onValueChange Called with sanitized raw text and [formatLicensePlate] display text for convenience.
+ * @param showClearButton When true, shows an × button to the right of the plate (outside the yellow/blue styling).
  */
 @Composable
 fun DutchLicensePlateInput(
@@ -88,6 +93,7 @@ fun DutchLicensePlateInput(
     value: String,
     onValueChange: (raw: String, formatted: String) -> Unit,
     enabled: Boolean = true,
+    showClearButton: Boolean = false,
 ) {
     val textStyle = TextStyle(
         color = Black,
@@ -100,11 +106,18 @@ fun DutchLicensePlateInput(
     val visualTransformation = remember { LicensePlateVisualTransformation }
 
     Row(
-        modifier = modifier.height(IntrinsicSize.Min).clip(RoundedCornerShape(8.dp)),
+        modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .height(IntrinsicSize.Min)
+                .clip(RoundedCornerShape(8.dp)),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
 
-        Box(
+            Box(
             modifier = Modifier
                 .fillMaxHeight()
                 .background(LicensePlateBlue)
@@ -121,6 +134,7 @@ fun DutchLicensePlateInput(
         }
         BasicTextField(
             modifier = Modifier
+                .weight(1f)
                 .background(LicensePlateYellow)
                 .padding(vertical = 8.dp),
             value = value,
@@ -141,6 +155,20 @@ fun DutchLicensePlateInput(
             ),
             keyboardActions = KeyboardActions.Default,
         )
+        }
+
+        if (showClearButton && value.isNotEmpty()) {
+            IconButton(
+                onClick = { onValueChange("", formatLicensePlate("")) },
+                enabled = enabled,
+            ) {
+                Text(
+                    text = "×",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 

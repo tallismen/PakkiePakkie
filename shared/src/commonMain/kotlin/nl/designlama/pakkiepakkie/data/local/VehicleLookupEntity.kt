@@ -21,6 +21,8 @@ data class VehicleLookupEntity(
     val brandstofJson: String?,
     val versnellingsbakCode: String?,
     val aantalVersnellingen: Int?,
+    val maximaleConstructiesnelheidKmh: Int?,
+    @ColumnInfo(defaultValue = "0") val isChipped: Boolean,
     @ColumnInfo(defaultValue = "1") val dataVersion: Int,
     val lastViewedAt: Long,
     val lastFetchedAt: Long,

@@ -15,6 +15,7 @@ import nl.designlama.pakkiepakkie.data.local.VehicleLookupDataVersion
 import nl.designlama.pakkiepakkie.data.local.VehicleLookupEntity
 import nl.designlama.pakkiepakkie.data.toVehicleLicensePlateInfo
 import nl.designlama.pakkiepakkie.datastore.UserVehicleRepository
+import nl.designlama.pakkiepakkie.network.chipped.ChippedTuneCalculator
 import nl.designlama.pakkiepakkie.network.rdw.PakkiePakkieCalculator
 import nl.designlama.pakkiepakkie.network.rdw.VehicleLicensePlateInfo
 import nl.designlama.pakkiepakkie.ui.components.MAX_RAW_LENGTH
@@ -22,7 +23,6 @@ import nl.designlama.pakkiepakkie.ui.components.sanitizeLicensePlate
 
 data class HomeState(
     val licensePlateInput: String = "",
-    val lookupResult: VehicleLicensePlateInfo? = null,
     val loading: Boolean = false,
     val errorMessage: String? = null,
     val recent: List<VehicleLookupEntity> = emptyList(),
@@ -37,8 +37,8 @@ sealed interface HomeEvent : UIEvent {
     data class OnLicensePlateChange(val raw: String) : HomeEvent
     data object OnSearchClick : HomeEvent
     data class OnRecentRowClick(val kenteken: String) : HomeEvent
-    data object OnSetThisAsMyVehicle : HomeEvent
     data class OnRecentSetMyVehicle(val kenteken: String) : HomeEvent
+    data object OnSettingsClick : HomeEvent
 }
 
 class HomeViewModel(
@@ -60,7 +60,11 @@ class HomeViewModel(
                     resolveMyVehicleInfo(recent, myK)
                 }
                 val winMap = withContext(Dispatchers.Default) {
-                    buildRecentWinPercentMap(myInfo, recent)
+                    val myEntity = myK?.let { k ->
+                        recent.find { sanitizeLicensePlate(it.kenteken) == sanitizeLicensePlate(k) }
+                            ?: vehicleLicenseRepository.getCachedEntity(k)
+                    }
+                    buildRecentWinPercentMap(myInfo, myEntity, recent)
                 }
                 _state.value = _state.value.copy(
                     recent = recent,
@@ -88,13 +92,26 @@ class HomeViewModel(
 
     private fun buildRecentWinPercentMap(
         myInfo: VehicleLicensePlateInfo?,
+        myEntity: VehicleLookupEntity?,
         recent: List<VehicleLookupEntity>,
     ): Map<String, Float?> {
         if (myInfo == null) return recent.associate { it.kenteken to null }
+        val myKw = effectiveKw(myInfo, myEntity?.isChipped == true)
         return recent.associate { row ->
             val other = row.toVehicleLicensePlateInfo()
-            row.kenteken to PakkiePakkieCalculator.winProbabilityPercent(myInfo, other)
+            val otherKw = effectiveKw(other, row.isChipped)
+            row.kenteken to PakkiePakkieCalculator.winProbabilityPercent(
+                my = myInfo,
+                other = other,
+                myVermogenKwOverride = myKw,
+                otherVermogenKwOverride = otherKw,
+            )
         }
+    }
+
+    private fun effectiveKw(info: VehicleLicensePlateInfo, isChipped: Boolean): Double? {
+        if (!isChipped) return null
+        return ChippedTuneCalculator.estimate(info)?.stage1Kw
     }
 
     override fun defaultUIState(): HomeState = HomeState()
@@ -110,17 +127,19 @@ class HomeViewModel(
                 _state.value = _state.value.copy(licensePlateInput = event.kenteken, errorMessage = null)
                 navigate(HomeDirections.OpenVehicleDetail(event.kenteken))
             }
-            HomeEvent.OnSetThisAsMyVehicle -> {
-                val k = _state.value.lookupResult?.kenteken ?: return
-                viewModelScope.launch {
-                    runCatching { userVehicleRepository.setMyVehicle(k) }
-                }
-            }
             is HomeEvent.OnRecentSetMyVehicle -> {
                 viewModelScope.launch {
-                    runCatching { userVehicleRepository.setMyVehicle(event.kenteken) }
+                    val norm = sanitizeLicensePlate(event.kenteken)
+                    if (norm.length != 6) return@launch
+                    val current = _state.value.myVehicleKenteken?.let { sanitizeLicensePlate(it) }
+                    if (current == norm) {
+                        runCatching { userVehicleRepository.clearMyVehicle() }
+                    } else {
+                        runCatching { userVehicleRepository.setMyVehicle(event.kenteken) }
+                    }
                 }
             }
+            HomeEvent.OnSettingsClick -> navigate(HomeDirections.OpenSettings)
         }
     }
 
@@ -132,31 +151,31 @@ class HomeViewModel(
                 if (norm.length != 6) {
                     _state.value = _state.value.copy(
                         loading = false,
-                        lookupResult = null,
                         errorMessage = "Kenteken moet 6 tekens zijn",
                     )
                     return@launch
                 }
+                _state.value = _state.value.copy(loading = true, errorMessage = null)
                 val recentRow = _state.value.recent.find { sanitizeLicensePlate(it.kenteken) == norm }
                 val fromRecent = recentRow?.takeIf { it.dataVersion >= VehicleLookupDataVersion.FULL }
                     ?.toVehicleLicensePlateInfo()
                     ?.takeIf { it.hasSufficientCachedFields() }
                 if (fromRecent != null) {
                     vehicleLicenseRepository.markRecentlyViewed(norm)
-                    _state.value = _state.value.copy(
-                        loading = false,
-                        lookupResult = fromRecent,
-                        errorMessage = null,
-                    )
+                    _state.value = _state.value.copy(loading = false)
+                    navigate(HomeDirections.OpenVehicleDetail(norm))
                     return@launch
                 }
-                _state.value = _state.value.copy(loading = true, errorMessage = null, lookupResult = null)
                 val result = vehicleLicenseRepository.loadCachedOrRefresh(raw)
-                _state.value = _state.value.copy(
-                    loading = false,
-                    lookupResult = result.getOrNull(),
-                    errorMessage = result.exceptionOrNull()?.let { it.message ?: it.toString() },
-                )
+                result.onSuccess {
+                    _state.value = _state.value.copy(loading = false)
+                    navigate(HomeDirections.OpenVehicleDetail(norm))
+                }.onFailure { error ->
+                    _state.value = _state.value.copy(
+                        loading = false,
+                        errorMessage = error.message ?: error.toString(),
+                    )
+                }
             } finally {
                 lookupMutex.unlock()
             }
