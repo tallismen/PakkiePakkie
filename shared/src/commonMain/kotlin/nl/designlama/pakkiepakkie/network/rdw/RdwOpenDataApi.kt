@@ -72,15 +72,22 @@ class RdwOpenDataApi(
             val aantalVersnellingen = tgkPick?.aantalversnellingenondergrens?.trim()?.toIntOrNull()
                 ?: tgkPick?.aantalversnellingenbovengrens?.trim()?.toIntOrNull()
 
+            val massaRijklaarKg = RdwNumberParser.parseInt(mainRow.massaRijklaar)
+            val vermogenMassaRijklaar = RdwNumberParser.parseDouble(mainRow.vermogenMassarijklaar)
+
             VehicleLicensePlateInfo(
                 kenteken = norm,
                 merk = mainRow.merk.orEmpty(),
                 handelsbenaming = mainRow.handelsbenaming.orEmpty(),
-                massaRijklaarKg = RdwNumberParser.parseInt(mainRow.massaRijklaar),
+                massaRijklaarKg = massaRijklaarKg,
                 massaLedigKg = RdwNumberParser.parseInt(mainRow.massaLedigVoertuig),
                 cilinderinhoudCc = RdwNumberParser.parseInt(mainRow.cilinderinhoud),
-                vermogenMassaRijklaar = RdwNumberParser.parseDouble(mainRow.vermogenMassarijklaar),
-                vermogenKw = RdwPowerParser.maxPowerKwFromFuelRows(fuelRows),
+                vermogenMassaRijklaar = vermogenMassaRijklaar,
+                vermogenKw = RdwPowerParser.resolveOfficialPowerKw(
+                    vermogenMassaRijklaar = vermogenMassaRijklaar,
+                    massaRijklaarKg = massaRijklaarKg,
+                    fuelRows = fuelRows,
+                ),
                 brandstofOmschrijvingen = brandstoffen,
                 hybridKlasse = hybridKlasse,
                 versnellingsbakCode = versnellingsbakCode,

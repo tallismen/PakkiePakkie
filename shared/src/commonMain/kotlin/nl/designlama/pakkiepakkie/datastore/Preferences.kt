@@ -12,6 +12,9 @@ import org.koin.core.annotation.Single
 object PreferencesKeys {
     val ONBOARDING_SEEN = booleanPreferencesKey("onboarding_seen")
     val MY_VEHICLE_KENTEKEN = stringPreferencesKey("my_vehicle_kenteken")
+    val UNIT_PRESET = stringPreferencesKey("unit_preset")
+    val POWER_UNIT = stringPreferencesKey("power_unit")
+    val WEIGHT_UNIT = stringPreferencesKey("weight_unit")
 }
 
 @Single

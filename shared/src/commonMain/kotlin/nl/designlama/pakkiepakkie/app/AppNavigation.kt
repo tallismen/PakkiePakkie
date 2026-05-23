@@ -11,6 +11,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import kotlinx.serialization.Serializable
 import nl.designlama.pakkiepakkie.ui.HomeScreen
+import nl.designlama.pakkiepakkie.ui.SettingsScreen
 import nl.designlama.pakkiepakkie.ui.VehicleCompareScreen
 
 @Serializable
@@ -18,6 +19,9 @@ data object HomeRoute
 
 @Serializable
 data class VehicleDetail(val kenteken: String)
+
+@Serializable
+data object SettingsRoute
 
 @Composable
 fun AppNavigation(modifier: Modifier = Modifier) {
@@ -36,6 +40,14 @@ fun AppNavigation(modifier: Modifier = Modifier) {
                     onOpenVehicleDetail = { k ->
                         navController.navigate(VehicleDetail(kenteken = k))
                     },
+                    onOpenSettings = {
+                        navController.navigate(SettingsRoute)
+                    },
+                )
+            }
+            composable<SettingsRoute> {
+                SettingsScreen(
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable<VehicleDetail> { entry ->

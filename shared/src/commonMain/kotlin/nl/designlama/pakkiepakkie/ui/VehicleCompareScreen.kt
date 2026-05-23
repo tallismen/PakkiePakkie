@@ -25,7 +25,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlin.math.roundToInt
+import nl.designlama.pakkiepakkie.datastore.UnitPreferencesRepository
+import nl.designlama.pakkiepakkie.domain.units.UnitPreferences
+import nl.designlama.pakkiepakkie.domain.units.VehicleDisplayFormatter
 import nl.designlama.pakkiepakkie.network.rdw.PakkiePakkieCalculator
 import nl.designlama.pakkiepakkie.network.rdw.VehicleLicensePlateInfo
 import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieGauge
@@ -33,6 +35,7 @@ import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieText
 import nl.designlama.pakkiepakkie.ui.components.PreviewContainer
 import nl.designlama.pakkiepakkie.ui.components.formatLicensePlate
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -56,9 +59,15 @@ fun VehicleCompareScreen(
     viewModel: VehicleDetailViewModel = koinViewModel(parameters = { parametersOf(kenteken) }),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val unitPreferences by koinInject<UnitPreferencesRepository>()
+        .preferencesFlow
+        .collectAsStateWithLifecycle(initialValue = UnitPreferences())
+    val displayFormatter = koinInject<VehicleDisplayFormatter>()
     VehicleCompareScaffold(
         kenteken = kenteken,
         state = state,
+        unitPreferences = unitPreferences,
+        displayFormatter = displayFormatter,
         onBack = onBack,
         modifier = modifier,
     )
@@ -69,6 +78,8 @@ fun VehicleCompareScreen(
 private fun VehicleCompareScaffold(
     kenteken: String,
     state: VehicleDetailState,
+    unitPreferences: UnitPreferences,
+    displayFormatter: VehicleDisplayFormatter,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -110,6 +121,8 @@ private fun VehicleCompareScaffold(
                     modifier = Modifier.fillMaxSize().padding(16.dp),
                     detail = state.detail!!,
                     my = state.my,
+                    unitPreferences = unitPreferences,
+                    displayFormatter = displayFormatter,
                     onBack = onBack,
                 )
             }
@@ -121,6 +134,8 @@ private fun VehicleCompareScaffold(
 private fun VehicleCompareContent(
     detail: VehicleLicensePlateInfo,
     my: VehicleLicensePlateInfo?,
+    unitPreferences: UnitPreferences,
+    displayFormatter: VehicleDisplayFormatter,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -145,24 +160,33 @@ private fun VehicleCompareContent(
     }
     Spacer(Modifier.height(24.dp))
     CompareRow(
-        label = "Vermogen (kW)",
-        detailText = detail.vermogenKw?.roundToInt()?.toString() ?: "—",
-        myText = my?.vermogenKw?.roundToInt()?.toString() ?: "—",
+        label = displayFormatter.powerLabel(unitPreferences),
+        detailText = displayFormatter.formatPower(detail.vermogenKw, unitPreferences),
+        myText = displayFormatter.formatPower(my?.vermogenKw, unitPreferences),
         trend = compareHigherBetter(detail.vermogenKw, my?.vermogenKw),
     )
     CompareRow(
-        label = "Rijklaar (kg)",
-        detailText = detail.massaRijklaarKg?.toString() ?: "—",
-        myText = my?.massaRijklaarKg?.toString() ?: "—",
+        label = "Pk per kilo",
+        detailText = displayFormatter.formatPkPerKilo(detail),
+        myText = my?.let { displayFormatter.formatPkPerKilo(it) } ?: "—",
+        trend = compareHigherBetter(
+            displayFormatter.pkPerKilo(detail),
+            my?.let { displayFormatter.pkPerKilo(it) },
+        ),
+    )
+    CompareRow(
+        label = displayFormatter.weightLabel(unitPreferences, rijklaar = true),
+        detailText = displayFormatter.formatWeight(detail.massaRijklaarKg, unitPreferences),
+        myText = displayFormatter.formatWeight(my?.massaRijklaarKg, unitPreferences),
         trend = compareLowerBetter(
             detail.massaRijklaarKg?.toDouble(),
             my?.massaRijklaarKg?.toDouble(),
         ),
     )
     CompareRow(
-        label = "Ledig (kg)",
-        detailText = detail.massaLedigKg?.toString() ?: "—",
-        myText = my?.massaLedigKg?.toString() ?: "—",
+        label = displayFormatter.weightLabel(unitPreferences, rijklaar = false),
+        detailText = displayFormatter.formatWeight(detail.massaLedigKg, unitPreferences),
+        myText = displayFormatter.formatWeight(my?.massaLedigKg, unitPreferences),
         trend = compareLowerBetter(
             detail.massaLedigKg?.toDouble(),
             my?.massaLedigKg?.toDouble(),
@@ -257,6 +281,7 @@ private fun CompareRow(
 
 @Composable
 private fun VehicleComparePreviewContent() {
+    val formatter = VehicleDisplayFormatter()
     VehicleCompareScaffold(
         kenteken = "PL700K",
         state = VehicleDetailState(
@@ -291,6 +316,8 @@ private fun VehicleComparePreviewContent() {
             ),
             errorMessage = null,
         ),
+        unitPreferences = UnitPreferences(),
+        displayFormatter = formatter,
         onBack = {},
     )
 }

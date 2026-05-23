@@ -17,6 +17,21 @@ object RdwPowerParser {
                 parsePowerKw(row.nominaalContinuMaximumVermogen),
             )
         }.maxOrNull()
+
+    /**
+     * Official type-approval kW from RDW (vermogen/massa rijklaar × massa rijklaar).
+     * Falls back to max per fuel row when ratio or mass is missing.
+     */
+    fun resolveOfficialPowerKw(
+        vermogenMassaRijklaar: Double?,
+        massaRijklaarKg: Int?,
+        fuelRows: List<RdwVehicleFuelDto>,
+    ): Double? {
+        if (vermogenMassaRijklaar != null && massaRijklaarKg != null) {
+            return vermogenMassaRijklaar * massaRijklaarKg
+        }
+        return maxPowerKwFromFuelRows(fuelRows)
+    }
 }
 
 object RdwNumberParser {

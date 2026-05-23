@@ -2,6 +2,7 @@ package nl.designlama.pakkiepakkie.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,8 +30,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.collectLatest
+import nl.designlama.pakkiepakkie.datastore.UnitPreferencesRepository
+import nl.designlama.pakkiepakkie.domain.units.UnitPreferences
+import nl.designlama.pakkiepakkie.domain.units.VehicleDisplayFormatter
 import nl.designlama.pakkiepakkie.network.rdw.PakkiePakkieCalculator
 import nl.designlama.pakkiepakkie.network.rdw.VehicleLicensePlateInfo
 import nl.designlama.pakkiepakkie.ui.components.DutchLicensePlateInput
@@ -39,24 +42,33 @@ import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieText
 import nl.designlama.pakkiepakkie.ui.components.PreviewContainer
 import nl.designlama.pakkiepakkie.ui.components.formatLicensePlate
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun HomeScreen(
     onOpenVehicleDetail: (String) -> Unit,
+    onOpenSettings: () -> Unit,
     viewModel: HomeViewModel = koinViewModel(),
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val unitPreferences by koinInject<UnitPreferencesRepository>()
+        .preferencesFlow
+        .collectAsStateWithLifecycle(initialValue = UnitPreferences())
+    val displayFormatter = koinInject<VehicleDisplayFormatter>()
     LaunchedEffect(viewModel) {
         viewModel.directions.collectLatest { dir ->
             when (dir) {
                 is HomeDirections.OpenVehicleDetail -> onOpenVehicleDetail(dir.kenteken)
+                HomeDirections.OpenSettings -> onOpenSettings()
             }
         }
     }
     HomeContent(
         state = state,
+        unitPreferences = unitPreferences,
+        displayFormatter = displayFormatter,
         onEvent = viewModel::onEvent,
         modifier = modifier,
     )
@@ -65,6 +77,8 @@ fun HomeScreen(
 @Composable
 private fun HomeContent(
     state: HomeState,
+    unitPreferences: UnitPreferences,
+    displayFormatter: VehicleDisplayFormatter,
     onEvent: (HomeEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -80,10 +94,19 @@ private fun HomeContent(
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        PakkiePakkieText(
-            text = "PakkiePakkie",
-            textColor = MaterialTheme.colorScheme.primary,
-        )
+        Box(modifier = Modifier.fillMaxWidth()) {
+            PakkiePakkieText(
+                text = "PakkiePakkie",
+                textColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.align(Alignment.Center),
+            )
+            TextButton(
+                onClick = { onEvent(HomeEvent.OnSettingsClick) },
+                modifier = Modifier.align(Alignment.CenterEnd),
+            ) {
+                Text("⚙")
+            }
+        }
         Spacer(modifier = Modifier.height(16.dp))
 
         DutchLicensePlateInput(
@@ -120,6 +143,8 @@ private fun HomeContent(
                 info = info,
                 myVehicleInfo = state.myVehicleInfo,
                 myVehicleKenteken = state.myVehicleKenteken,
+                unitPreferences = unitPreferences,
+                displayFormatter = displayFormatter,
                 onSetMyVehicle = { onEvent(HomeEvent.OnSetThisAsMyVehicle) },
             )
         }
@@ -174,6 +199,8 @@ private fun VehicleInfoCard(
     info: VehicleLicensePlateInfo,
     myVehicleInfo: VehicleLicensePlateInfo?,
     myVehicleKenteken: String?,
+    unitPreferences: UnitPreferences,
+    displayFormatter: VehicleDisplayFormatter,
     onSetMyVehicle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -181,18 +208,14 @@ private fun VehicleInfoCard(
         PakkiePakkieText(text = formatLicensePlate(info.kenteken))
         Spacer(modifier = Modifier.height(8.dp))
         PakkiePakkieText(text = "${info.merk} ${info.handelsbenaming}".trim())
-        info.massaRijklaarKg?.let { kg ->
-            PakkiePakkieText(text = "Rijklaar gewicht: $kg kg")
+        info.massaRijklaarKg?.let {
+            PakkiePakkieText(
+                text = "Rijklaar gewicht: ${displayFormatter.formatWeight(it, unitPreferences)}",
+            )
         }
-        when {
-            info.vermogenKw != null -> {
-                val kwTxt = info.vermogenKw.roundToInt()
-                val pkPart = info.vermogenPk?.roundToInt()?.toString() ?: "—"
-                PakkiePakkieText(text = "Vermogen: $kwTxt kW ($pkPart pk)")
-            }
-
-            else -> PakkiePakkieText(text = "Vermogen: —")
-        }
+        PakkiePakkieText(
+            text = "${displayFormatter.powerLabel(unitPreferences)}: ${displayFormatter.formatPower(info.vermogenKw, unitPreferences)}",
+        )
         if (info.brandstofOmschrijvingen.isNotEmpty()) {
             PakkiePakkieText(text = "Brandstof: ${info.brandstofOmschrijvingen.joinToString(", ")}")
         }
@@ -222,6 +245,7 @@ private fun VehicleInfoCard(
 
 @Composable
 private fun PreviewContent() {
+    val formatter = VehicleDisplayFormatter()
     HomeContent(
         state = HomeState(
             licensePlateInput = "PL700K",
@@ -242,6 +266,8 @@ private fun PreviewContent() {
             recent = emptyList(),
             errorMessage = "Fout",
         ),
+        unitPreferences = UnitPreferences(),
+        displayFormatter = formatter,
         onEvent = {},
     )
 }

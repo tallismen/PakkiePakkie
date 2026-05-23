@@ -39,6 +39,7 @@ sealed interface HomeEvent : UIEvent {
     data class OnRecentRowClick(val kenteken: String) : HomeEvent
     data object OnSetThisAsMyVehicle : HomeEvent
     data class OnRecentSetMyVehicle(val kenteken: String) : HomeEvent
+    data object OnSettingsClick : HomeEvent
 }
 
 class HomeViewModel(
@@ -121,6 +122,7 @@ class HomeViewModel(
                     runCatching { userVehicleRepository.setMyVehicle(event.kenteken) }
                 }
             }
+            HomeEvent.OnSettingsClick -> navigate(HomeDirections.OpenSettings)
         }
     }
 
