@@ -15,6 +15,7 @@ import nl.designlama.pakkiepakkie.data.local.VehicleLookupDataVersion
 import nl.designlama.pakkiepakkie.data.local.VehicleLookupEntity
 import nl.designlama.pakkiepakkie.data.toVehicleLicensePlateInfo
 import nl.designlama.pakkiepakkie.datastore.UserVehicleRepository
+import nl.designlama.pakkiepakkie.network.chipped.ChippedTuneCalculator
 import nl.designlama.pakkiepakkie.network.rdw.PakkiePakkieCalculator
 import nl.designlama.pakkiepakkie.network.rdw.VehicleLicensePlateInfo
 import nl.designlama.pakkiepakkie.ui.components.MAX_RAW_LENGTH
@@ -59,7 +60,11 @@ class HomeViewModel(
                     resolveMyVehicleInfo(recent, myK)
                 }
                 val winMap = withContext(Dispatchers.Default) {
-                    buildRecentWinPercentMap(myInfo, recent)
+                    val myEntity = myK?.let { k ->
+                        recent.find { sanitizeLicensePlate(it.kenteken) == sanitizeLicensePlate(k) }
+                            ?: vehicleLicenseRepository.getCachedEntity(k)
+                    }
+                    buildRecentWinPercentMap(myInfo, myEntity, recent)
                 }
                 _state.value = _state.value.copy(
                     recent = recent,
@@ -87,13 +92,26 @@ class HomeViewModel(
 
     private fun buildRecentWinPercentMap(
         myInfo: VehicleLicensePlateInfo?,
+        myEntity: VehicleLookupEntity?,
         recent: List<VehicleLookupEntity>,
     ): Map<String, Float?> {
         if (myInfo == null) return recent.associate { it.kenteken to null }
+        val myKw = effectiveKw(myInfo, myEntity?.isChipped == true)
         return recent.associate { row ->
             val other = row.toVehicleLicensePlateInfo()
-            row.kenteken to PakkiePakkieCalculator.winProbabilityPercent(myInfo, other)
+            val otherKw = effectiveKw(other, row.isChipped)
+            row.kenteken to PakkiePakkieCalculator.winProbabilityPercent(
+                my = myInfo,
+                other = other,
+                myVermogenKwOverride = myKw,
+                otherVermogenKwOverride = otherKw,
+            )
         }
+    }
+
+    private fun effectiveKw(info: VehicleLicensePlateInfo, isChipped: Boolean): Double? {
+        if (!isChipped) return null
+        return ChippedTuneCalculator.estimate(info)?.stage1Kw
     }
 
     override fun defaultUIState(): HomeState = HomeState()

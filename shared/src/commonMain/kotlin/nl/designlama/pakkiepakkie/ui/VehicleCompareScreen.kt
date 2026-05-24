@@ -1,5 +1,7 @@
 package nl.designlama.pakkiepakkie.ui
 
+import androidx.compose.animation.animateContentSize
+import nl.designlama.pakkiepakkie.ui.components.PakkieAnimations
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,12 +34,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import nl.designlama.pakkiepakkie.datastore.UnitPreferencesRepository
 import nl.designlama.pakkiepakkie.domain.units.UnitPreferences
 import nl.designlama.pakkiepakkie.domain.units.VehicleDisplayFormatter
+import nl.designlama.pakkiepakkie.network.chipped.ChippedTuneCalculator
+import nl.designlama.pakkiepakkie.network.chipped.ChippedTuneEstimate
 import nl.designlama.pakkiepakkie.network.rdw.PakkiePakkieCalculator
 import nl.designlama.pakkiepakkie.network.rdw.VehicleLicensePlateInfo
 import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieGauge
 import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieText
 import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieTopBar
 import nl.designlama.pakkiepakkie.ui.components.PreviewContainer
+import nl.designlama.pakkiepakkie.ui.components.ChippedKentekenTitle
+import nl.designlama.pakkiepakkie.ui.components.ChippedVehicleCard
 import nl.designlama.pakkiepakkie.ui.components.formatLicensePlate
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.koinInject
@@ -94,7 +100,12 @@ private fun VehicleCompareScaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
             PakkiePakkieTopBar(
-                title = formatLicensePlate(kenteken),
+                titleContent = {
+                    ChippedKentekenTitle(
+                        kenteken = kenteken,
+                        isChipped = state.detailIsChipped,
+                    )
+                },
                 onBack = onBack,
             )
         },
@@ -157,10 +168,25 @@ private fun VehicleCompareContent(
     modifier: Modifier = Modifier,
 ) {
     val my = state.my
-    val winPct = my?.let { PakkiePakkieCalculator.winProbabilityPercent(it, detail) }
+    val myKw = my?.let {
+        PakkiePakkieCalculator.effectiveVermogenKw(it, state.myTune, state.myIsChipped)
+    }
+    val detailKw = PakkiePakkieCalculator.effectiveVermogenKw(detail, state.detailTune, state.detailIsChipped)
+    val winPct = my?.let {
+        PakkiePakkieCalculator.winProbabilityPercent(
+            my = it,
+            other = detail,
+            myVermogenKwOverride = myKw,
+            otherVermogenKwOverride = detailKw,
+        )
+    }
     val isMyVehicle = state.isMyVehicle(detail.kenteken)
 
-    Column(modifier = modifier) {
+    Column(
+        modifier = modifier.animateContentSize(
+            animationSpec = PakkieAnimations.contentSizeSpec(),
+        ),
+    ) {
         Text(
             text = "${detail.merk} ${detail.handelsbenaming}".trim(),
             style = MaterialTheme.typography.titleMedium,
@@ -191,6 +217,15 @@ private fun VehicleCompareContent(
                 )
                 Spacer(Modifier.height(8.dp))
                 PakkiePakkieGauge(percent = winPct, sizeDp = 140f)
+                if (my != null) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = "Schatting — nooit 0% of 100% omdat echte races variabel zijn.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
                 if (my == null) {
                     Spacer(Modifier.height(8.dp))
                     Text(
@@ -205,18 +240,49 @@ private fun VehicleCompareContent(
 
         Spacer(Modifier.height(16.dp))
 
+        ChippedVehicleCard(
+            caption = "Dit voertuig",
+            kenteken = detail.kenteken,
+            isChipped = state.detailIsChipped,
+            tune = state.detailTune,
+            canChip = ChippedTuneCalculator.canBeChipped(detail),
+            onToggle = { onEvent(VehicleDetailEvent.OnToggleDetailChipped) },
+        )
+
+        if (my != null && !isMyVehicle) {
+            Spacer(Modifier.height(8.dp))
+            ChippedVehicleCard(
+                caption = "Jouw voertuig",
+                kenteken = my.kenteken,
+                isChipped = state.myIsChipped,
+                tune = state.myTune,
+                canChip = ChippedTuneCalculator.canBeChipped(my),
+                onToggle = { onEvent(VehicleDetailEvent.OnToggleMyChipped) },
+            )
+        }
+
+        Spacer(Modifier.height(16.dp))
+
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             ),
         ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .animateContentSize(animationSpec = PakkieAnimations.contentSizeSpec()),
+            ) {
                 CompareRow(
-                    label = displayFormatter.powerLabel(unitPreferences),
-                    detailText = displayFormatter.formatPower(detail.vermogenKw, unitPreferences),
-                    myText = displayFormatter.formatPower(my?.vermogenKw, unitPreferences),
-                    trend = compareHigherBetter(detail.vermogenKw, my?.vermogenKw),
+                    label = powerCompareLabel(
+                        formatter = displayFormatter,
+                        prefs = unitPreferences,
+                        showStage1 = state.detailIsChipped || state.myIsChipped,
+                    ),
+                    detailText = formatEffectivePower(detail, state.detailIsChipped, state.detailTune, displayFormatter, unitPreferences),
+                    myText = my?.let { formatEffectivePower(it, state.myIsChipped, state.myTune, displayFormatter, unitPreferences) } ?: "—",
+                    trend = compareHigherBetter(detailKw, myKw),
                 )
                 CompareDivider()
                 CompareRow(
@@ -237,6 +303,7 @@ private fun VehicleCompareContent(
                         detail.massaRijklaarKg?.toDouble(),
                         my?.massaRijklaarKg?.toDouble(),
                     ),
+                    invertArrow = true,
                 )
                 CompareDivider()
                 CompareRow(
@@ -246,6 +313,17 @@ private fun VehicleCompareContent(
                     trend = compareLowerBetter(
                         detail.massaLedigKg?.toDouble(),
                         my?.massaLedigKg?.toDouble(),
+                    ),
+                    invertArrow = true,
+                )
+                CompareDivider()
+                CompareRow(
+                    label = "Top snelheid",
+                    detailText = formatTopSpeed(detail.maximaleConstructiesnelheidKmh),
+                    myText = formatTopSpeed(my?.maximaleConstructiesnelheidKmh),
+                    trend = compareHigherBetter(
+                        detail.maximaleConstructiesnelheidKmh?.toDouble(),
+                        my?.maximaleConstructiesnelheidKmh?.toDouble(),
                     ),
                 )
                 CompareDivider()
@@ -289,6 +367,27 @@ private fun VehicleCompareContent(
             Text("Klaar")
         }
     }
+}
+
+private fun formatTopSpeed(kmh: Int?): String =
+    kmh?.let { "$it km/h" } ?: "—"
+
+private fun powerCompareLabel(
+    formatter: VehicleDisplayFormatter,
+    prefs: UnitPreferences,
+    showStage1: Boolean,
+): String = if (showStage1) "Vermogen (Stage 1)" else formatter.powerLabel(prefs)
+
+private fun formatEffectivePower(
+    info: VehicleLicensePlateInfo,
+    isChipped: Boolean,
+    tune: ChippedTuneEstimate?,
+    formatter: VehicleDisplayFormatter,
+    prefs: UnitPreferences,
+): String {
+    val kw = PakkiePakkieCalculator.effectiveVermogenKw(info, tune, isChipped)
+    val formatted = formatter.formatPower(kw, prefs)
+    return if (isChipped && tune != null) "$formatted (geschat)" else formatted
 }
 
 @Composable
@@ -335,13 +434,14 @@ private fun CompareRow(
     myText: String,
     trend: CompareTrend,
     modifier: Modifier = Modifier,
+    invertArrow: Boolean = false,
 ) {
     val good = MaterialTheme.colorScheme.primary
     val bad = MaterialTheme.colorScheme.error
     val neutral = MaterialTheme.colorScheme.onSurface
     val (arrow, detailColor) = when (trend) {
-        CompareTrend.DetailBetter -> "↑" to good
-        CompareTrend.DetailWorse -> "↓" to bad
+        CompareTrend.DetailBetter -> (if (invertArrow) "↓" else "↑") to good
+        CompareTrend.DetailWorse -> (if (invertArrow) "↑" else "↓") to bad
         CompareTrend.Neutral -> "" to neutral
     }
     Column(
@@ -421,6 +521,7 @@ private fun VehicleComparePreviewContent() {
                 hybridKlasse = null,
                 versnellingsbakCode = "M",
                 aantalVersnellingen = 6,
+                maximaleConstructiesnelheidKmh = 210,
             ),
             my = VehicleLicensePlateInfo(
                 kenteken = "ABC12D",
@@ -435,6 +536,7 @@ private fun VehicleComparePreviewContent() {
                 hybridKlasse = null,
                 versnellingsbakCode = "A",
                 aantalVersnellingen = 8,
+                maximaleConstructiesnelheidKmh = 180,
             ),
             myVehicleKenteken = "ABC12D",
             errorMessage = null,

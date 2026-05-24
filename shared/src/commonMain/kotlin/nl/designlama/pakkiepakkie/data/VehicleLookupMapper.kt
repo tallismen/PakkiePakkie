@@ -32,12 +32,14 @@ fun VehicleLookupEntity.toVehicleLicensePlateInfo(): VehicleLicensePlateInfo =
         hybridKlasse = hybridKlasse,
         versnellingsbakCode = versnellingsbakCode,
         aantalVersnellingen = aantalVersnellingen,
+        maximaleConstructiesnelheidKmh = maximaleConstructiesnelheidKmh,
     )
 
 fun VehicleLicensePlateInfo.toVehicleLookupEntity(
     lastViewedAt: Long,
     lastFetchedAt: Long,
-    dataVersion: Int = VehicleLookupDataVersion.FULL,
+    dataVersion: Int = VehicleLookupDataVersion.V3,
+    isChipped: Boolean = false,
 ): VehicleLookupEntity =
     VehicleLookupEntity(
         kenteken = kenteken,
@@ -54,6 +56,8 @@ fun VehicleLicensePlateInfo.toVehicleLookupEntity(
         brandstofJson = encodeBrandstofJson(brandstofOmschrijvingen),
         versnellingsbakCode = versnellingsbakCode,
         aantalVersnellingen = aantalVersnellingen,
+        maximaleConstructiesnelheidKmh = maximaleConstructiesnelheidKmh,
+        isChipped = isChipped,
         dataVersion = dataVersion,
         lastViewedAt = lastViewedAt,
         lastFetchedAt = lastFetchedAt,

@@ -207,6 +207,7 @@ private fun RecentVehicleRow(
             percent = winPercent,
             sizeDp = 52f,
             showLabel = false,
+            animationEnabled = false,
         )
         IconButton(onClick = onSetMyVehicle, modifier = Modifier.padding(end = 4.dp)) {
             Text(
@@ -251,6 +252,8 @@ private fun PreviewContent() {
                     dataVersion = 2,
                     lastViewedAt = 0L,
                     lastFetchedAt = 0L,
+                    maximaleConstructiesnelheidKmh = 210,
+                    isChipped = false,
                 ),
             ),
             myVehicleKenteken = "PL700K",

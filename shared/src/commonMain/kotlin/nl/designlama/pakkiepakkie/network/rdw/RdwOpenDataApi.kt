@@ -74,6 +74,8 @@ class RdwOpenDataApi(
 
             val massaRijklaarKg = RdwNumberParser.parseInt(mainRow.massaRijklaar)
             val vermogenMassaRijklaar = RdwNumberParser.parseDouble(mainRow.vermogenMassarijklaar)
+            val maxSpeedKmh = RdwNumberParser.parseInt(mainRow.maximaleConstructiesnelheid)
+                ?: RdwNumberParser.parseInt(mainRow.opgegevenMaximumSnelheid)
 
             VehicleLicensePlateInfo(
                 kenteken = norm,
@@ -92,6 +94,7 @@ class RdwOpenDataApi(
                 hybridKlasse = hybridKlasse,
                 versnellingsbakCode = versnellingsbakCode,
                 aantalVersnellingen = aantalVersnellingen,
+                maximaleConstructiesnelheidKmh = maxSpeedKmh,
             )
         }
     }

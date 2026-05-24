@@ -12,6 +12,8 @@ import nl.designlama.pakkiepakkie.data.VehicleLicenseRepository
 import nl.designlama.pakkiepakkie.data.local.VehicleLookupDataVersion
 import nl.designlama.pakkiepakkie.data.toVehicleLicensePlateInfo
 import nl.designlama.pakkiepakkie.datastore.UserVehicleRepository
+import nl.designlama.pakkiepakkie.network.chipped.ChippedTuneCalculator
+import nl.designlama.pakkiepakkie.network.chipped.ChippedTuneEstimate
 import nl.designlama.pakkiepakkie.network.rdw.VehicleLicensePlateInfo
 import nl.designlama.pakkiepakkie.ui.components.sanitizeLicensePlate
 
@@ -21,6 +23,10 @@ data class VehicleDetailState(
     val my: VehicleLicensePlateInfo? = null,
     val myVehicleKenteken: String? = null,
     val errorMessage: String? = null,
+    val detailIsChipped: Boolean = false,
+    val myIsChipped: Boolean = false,
+    val detailTune: ChippedTuneEstimate? = null,
+    val myTune: ChippedTuneEstimate? = null,
 ) : UIState {
     fun isMyVehicle(kenteken: String): Boolean {
         val norm = sanitizeLicensePlate(kenteken)
@@ -32,6 +38,8 @@ data class VehicleDetailState(
 sealed interface VehicleDetailEvent : UIEvent {
     data object OnSetAsMyVehicle : VehicleDetailEvent
     data object OnClearAsMyVehicle : VehicleDetailEvent
+    data object OnToggleDetailChipped : VehicleDetailEvent
+    data object OnToggleMyChipped : VehicleDetailEvent
 }
 
 class VehicleDetailViewModel(
@@ -44,9 +52,13 @@ class VehicleDetailViewModel(
         loadVehicle()
         viewModelScope.launch {
             userVehicleRepository.myVehicleKentekenFlow().collectLatest { myK ->
+                val myInfo = resolveMyVehicleInfo(myK)
+                val myChipped = myK?.let { vehicleLicenseRepository.isChipped(it) } ?: false
                 _state.value = _state.value.copy(
                     myVehicleKenteken = myK,
-                    my = resolveMyVehicleInfo(myK),
+                    my = myInfo,
+                    myIsChipped = myChipped,
+                    myTune = if (myInfo != null && myChipped) ChippedTuneCalculator.estimate(myInfo) else null,
                 )
             }
         }
@@ -75,6 +87,27 @@ class VehicleDetailViewModel(
                     runCatching { userVehicleRepository.clearMyVehicle() }
                 }
             }
+            VehicleDetailEvent.OnToggleDetailChipped -> toggleChipped(forDetail = true)
+            VehicleDetailEvent.OnToggleMyChipped -> toggleChipped(forDetail = false)
+        }
+    }
+
+    private fun toggleChipped(forDetail: Boolean) {
+        viewModelScope.launch {
+            val info = if (forDetail) {
+                _state.value.detail ?: return@launch
+            } else {
+                _state.value.my ?: return@launch
+            }
+            val currently = if (forDetail) _state.value.detailIsChipped else _state.value.myIsChipped
+            val next = !currently
+            vehicleLicenseRepository.setChipped(info.kenteken, next)
+            val tune = if (next) ChippedTuneCalculator.estimate(info) else null
+            if (forDetail) {
+                _state.value = _state.value.copy(detailIsChipped = next, detailTune = tune)
+            } else {
+                _state.value = _state.value.copy(myIsChipped = next, myTune = tune)
+            }
         }
     }
 
@@ -100,12 +133,19 @@ class VehicleDetailViewModel(
                 return@launch
             }
             val myK = userVehicleRepository.myVehicleKentekenFlow().first()
+            val detailChipped = vehicleLicenseRepository.isChipped(norm)
+            val myChipped = myK?.let { vehicleLicenseRepository.isChipped(it) } ?: false
+            val myInfo = resolveMyVehicleInfo(myK)
             _state.value = VehicleDetailState(
                 loading = false,
                 detail = detail,
-                my = resolveMyVehicleInfo(myK),
+                my = myInfo,
                 myVehicleKenteken = myK,
                 errorMessage = null,
+                detailIsChipped = detailChipped,
+                myIsChipped = myChipped,
+                detailTune = if (detailChipped) ChippedTuneCalculator.estimate(detail) else null,
+                myTune = if (myInfo != null && myChipped) ChippedTuneCalculator.estimate(myInfo) else null,
             )
         }
     }

@@ -60,6 +60,8 @@ data class VehicleLicensePlateInfo(
     /** RDW `codetypeversnellingsbak` e.g. A, M, C. */
     val versnellingsbakCode: String?,
     val aantalVersnellingen: Int?,
+    /** RDW maximale constructiesnelheid (km/h). */
+    val maximaleConstructiesnelheidKmh: Int?,
 ) {
     val vermogenPk: Double?
         get() = vermogenKw?.times(1.36)

@@ -28,8 +28,8 @@ object PakkiePakkieCalculator {
         }
     }
 
-    fun sprintIndex(info: VehicleLicensePlateInfo): Double {
-        val kw = (info.vermogenKw ?: return 0.01).coerceAtLeast(MIN_KW)
+    fun sprintIndex(info: VehicleLicensePlateInfo, vermogenKwOverride: Double? = null): Double {
+        val kw = (vermogenKwOverride ?: info.vermogenKw ?: return 0.01).coerceAtLeast(MIN_KW)
         val kg = (info.massaRijklaarKg?.toDouble() ?: return 0.01).coerceAtLeast(MIN_MASS_KG)
         val base = kw / kg * 1000.0
         val fuel = fuelMultiplier(info.brandstofOmschrijvingen, info.hybridKlasse)
@@ -40,10 +40,24 @@ object PakkiePakkieCalculator {
     /**
      * Estimated chance **(0–100)** that [my] wins a 0–100 sprint vs [other].
      */
-    fun winProbabilityPercent(my: VehicleLicensePlateInfo, other: VehicleLicensePlateInfo): Float {
-        val a = sprintIndex(my)
-        val b = sprintIndex(other)
+    fun winProbabilityPercent(
+        my: VehicleLicensePlateInfo,
+        other: VehicleLicensePlateInfo,
+        myVermogenKwOverride: Double? = null,
+        otherVermogenKwOverride: Double? = null,
+    ): Float {
+        val a = sprintIndex(my, myVermogenKwOverride)
+        val b = sprintIndex(other, otherVermogenKwOverride)
         return winProbabilityFromIndices(a, b)
+    }
+
+    fun effectiveVermogenKw(
+        info: VehicleLicensePlateInfo,
+        tune: nl.designlama.pakkiepakkie.network.chipped.ChippedTuneEstimate?,
+        isChipped: Boolean,
+    ): Double? {
+        if (!isChipped) return info.vermogenKw
+        return tune?.stage1Kw ?: info.vermogenKw
     }
 
     internal fun winProbabilityFromIndices(myIndex: Double, otherIndex: Double): Float {

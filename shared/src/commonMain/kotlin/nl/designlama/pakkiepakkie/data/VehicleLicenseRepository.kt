@@ -72,15 +72,30 @@ class VehicleLicenseRepository(
     private suspend fun fetchFromApiAndPersist(normalizedKenteken: String): VehicleLicensePlateInfo {
         val info = rdwOpenDataApi.fetchByKenteken(normalizedKenteken)
         val now = Clock.System.now().toEpochMilliseconds()
+        val existing = dao.getByKenteken(normalizedKenteken)
         dao.upsert(
             info.toVehicleLookupEntity(
                 lastViewedAt = now,
                 lastFetchedAt = now,
-                dataVersion = VehicleLookupDataVersion.FULL,
+                dataVersion = VehicleLookupDataVersion.V3,
+                isChipped = existing?.isChipped ?: false,
             ),
         )
         return info
     }
+
+    suspend fun setChipped(raw: String, isChipped: Boolean) {
+        withContext(Dispatchers.Default) {
+            val norm = sanitizeLicensePlate(raw)
+            if (norm.length == 6) dao.updateIsChipped(norm, isChipped)
+        }
+    }
+
+    suspend fun isChipped(raw: String): Boolean =
+        withContext(Dispatchers.Default) {
+            val norm = sanitizeLicensePlate(raw)
+            if (norm.length != 6) false else dao.getByKenteken(norm)?.isChipped ?: false
+        }
 
     private suspend fun touchLastViewed(normalizedKenteken: String) {
         val now = Clock.System.now().toEpochMilliseconds()

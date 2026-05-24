@@ -1,0 +1,192 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 3,
+    "identityHash": "f97f738708e383c4d8730be399b418fe",
+    "entities": [
+      {
+        "tableName": "vehicle_lookup",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`kenteken` TEXT NOT NULL, `merk` TEXT NOT NULL, `handelsbenaming` TEXT NOT NULL, `massaRijklaarKg` INTEGER, `vermogenKw` REAL, `vermogenPk` REAL, `massaLedigKg` INTEGER, `cilinderinhoudCc` INTEGER, `vermogenMassaRijklaar` REAL, `primaryBrandstof` TEXT, `hybridKlasse` TEXT, `brandstofJson` TEXT, `versnellingsbakCode` TEXT, `aantalVersnellingen` INTEGER, `maximaleConstructiesnelheidKmh` INTEGER, `isChipped` INTEGER NOT NULL DEFAULT 0, `dataVersion` INTEGER NOT NULL DEFAULT 1, `lastViewedAt` INTEGER NOT NULL, `lastFetchedAt` INTEGER NOT NULL, PRIMARY KEY(`kenteken`))",
+        "fields": [
+          {
+            "fieldPath": "kenteken",
+            "columnName": "kenteken",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "merk",
+            "columnName": "merk",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "handelsbenaming",
+            "columnName": "handelsbenaming",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "massaRijklaarKg",
+            "columnName": "massaRijklaarKg",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "vermogenKw",
+            "columnName": "vermogenKw",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "vermogenPk",
+            "columnName": "vermogenPk",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "massaLedigKg",
+            "columnName": "massaLedigKg",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "cilinderinhoudCc",
+            "columnName": "cilinderinhoudCc",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "vermogenMassaRijklaar",
+            "columnName": "vermogenMassaRijklaar",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "primaryBrandstof",
+            "columnName": "primaryBrandstof",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "hybridKlasse",
+            "columnName": "hybridKlasse",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "brandstofJson",
+            "columnName": "brandstofJson",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "versnellingsbakCode",
+            "columnName": "versnellingsbakCode",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "aantalVersnellingen",
+            "columnName": "aantalVersnellingen",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "maximaleConstructiesnelheidKmh",
+            "columnName": "maximaleConstructiesnelheidKmh",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "isChipped",
+            "columnName": "isChipped",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "dataVersion",
+            "columnName": "dataVersion",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          },
+          {
+            "fieldPath": "lastViewedAt",
+            "columnName": "lastViewedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastFetchedAt",
+            "columnName": "lastFetchedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "kenteken"
+          ]
+        }
+      },
+      {
+        "tableName": "atm_tune_cache",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`slug` TEXT NOT NULL, `sourceUrl` TEXT NOT NULL, `stockPk` INTEGER NOT NULL, `stage1Pk` INTEGER NOT NULL, `gainPk` INTEGER NOT NULL, `stockNm` INTEGER, `stage1Nm` INTEGER, `gainNm` INTEGER, `fetchedAt` INTEGER NOT NULL, PRIMARY KEY(`slug`))",
+        "fields": [
+          {
+            "fieldPath": "slug",
+            "columnName": "slug",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceUrl",
+            "columnName": "sourceUrl",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stockPk",
+            "columnName": "stockPk",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stage1Pk",
+            "columnName": "stage1Pk",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gainPk",
+            "columnName": "gainPk",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stockNm",
+            "columnName": "stockNm",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "stage1Nm",
+            "columnName": "stage1Nm",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "gainNm",
+            "columnName": "gainNm",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "fetchedAt",
+            "columnName": "fetchedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "slug"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'f97f738708e383c4d8730be399b418fe')"
+    ]
+  }
+}

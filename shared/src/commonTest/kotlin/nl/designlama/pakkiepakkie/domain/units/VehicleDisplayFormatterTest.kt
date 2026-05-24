@@ -96,5 +96,6 @@ class VehicleDisplayFormatterTest {
         hybridKlasse = null,
         versnellingsbakCode = "M",
         aantalVersnellingen = 6,
+        maximaleConstructiesnelheidKmh = 210,
     )
 }
