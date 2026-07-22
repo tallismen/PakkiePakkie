@@ -44,7 +44,9 @@ import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieTopBar
 import nl.designlama.pakkiepakkie.ui.components.PreviewContainer
 import nl.designlama.pakkiepakkie.ui.components.ChippedKentekenTitle
 import nl.designlama.pakkiepakkie.ui.components.ChippedVehicleCard
-import nl.designlama.pakkiepakkie.ui.components.formatLicensePlate
+import nl.designlama.pakkiepakkie.ui.components.ReviewEditorSheet
+import nl.designlama.pakkiepakkie.ui.components.ReviewListItem
+import nl.designlama.pakkiepakkie.ui.components.StarRating
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -83,6 +85,20 @@ fun VehicleCompareScreen(
         onEvent = viewModel::onEvent,
         modifier = modifier,
     )
+    if (state.reviewSheetVisible) {
+        ReviewEditorSheet(
+            kenteken = kenteken,
+            rating = state.draftRating,
+            text = state.draftText,
+            isEditing = state.myReview != null,
+            submitting = state.reviewSubmitting,
+            errorMessage = state.reviewErrorMessage,
+            onRatingChange = { viewModel.onEvent(VehicleDetailEvent.OnDraftRatingChange(it)) },
+            onTextChange = { viewModel.onEvent(VehicleDetailEvent.OnDraftTextChange(it)) },
+            onSubmit = { viewModel.onEvent(VehicleDetailEvent.OnSubmitReview) },
+            onDismiss = { viewModel.onEvent(VehicleDetailEvent.OnDismissReviewSheet) },
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -345,6 +361,13 @@ private fun VehicleCompareContent(
 
         Spacer(Modifier.height(16.dp))
 
+        ReviewsSection(
+            state = state,
+            onEvent = onEvent,
+        )
+
+        Spacer(Modifier.height(16.dp))
+
         if (isMyVehicle) {
             OutlinedButton(
                 onClick = { onEvent(VehicleDetailEvent.OnClearAsMyVehicle) },
@@ -367,6 +390,86 @@ private fun VehicleCompareContent(
             Text("Klaar")
         }
     }
+}
+
+@Composable
+private fun ReviewsSection(
+    state: VehicleDetailState,
+    onEvent: (VehicleDetailEvent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+        ) {
+            Text(
+                text = "Beoordelingen",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            val average = state.averageRating
+            if (average != null && state.reviews.isNotEmpty()) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    StarRating(rating = average.toInt().coerceIn(1, 5), starSizeSp = 18f)
+                    Text(
+                        text = "${formatAverageRating(average)} · ${state.reviews.size} " +
+                            if (state.reviews.size == 1) "beoordeling" else "beoordelingen",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            } else {
+                Text(
+                    text = "Nog geen beoordelingen",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            state.reviews.forEachIndexed { index, review ->
+                if (index > 0) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                }
+                ReviewListItem(review = review)
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = { onEvent(VehicleDetailEvent.OnOpenReviewSheet) },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = if (state.myReview != null) {
+                        "Bewerk jouw beoordeling"
+                    } else {
+                        "Schrijf een beoordeling"
+                    },
+                )
+            }
+        }
+    }
+}
+
+private fun formatAverageRating(average: Float): String {
+    val tenths = ((average * 10f) + 0.5f).toInt()
+    val whole = tenths / 10
+    val fraction = tenths % 10
+    return if (fraction == 0) "$whole" else "$whole,$fraction"
 }
 
 private fun formatTopSpeed(kmh: Int?): String =

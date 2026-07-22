@@ -31,12 +31,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.collectLatest
+import nl.designlama.pakkiepakkie.data.LatestReviewedPlate
 import nl.designlama.pakkiepakkie.data.local.VehicleLookupEntity
 import nl.designlama.pakkiepakkie.ui.components.DutchLicensePlateInput
 import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieGauge
 import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieText
 import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieTopBar
 import nl.designlama.pakkiepakkie.ui.components.PreviewContainer
+import nl.designlama.pakkiepakkie.ui.components.StarRating
 import nl.designlama.pakkiepakkie.ui.components.formatLicensePlate
 import nl.designlama.pakkiepakkie.ui.components.sanitizeLicensePlate
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -137,35 +139,113 @@ private fun HomeContent(
                 }
             }
 
-            if (state.recent.isNotEmpty()) {
+            if (state.latestReviewed.isNotEmpty() || state.recent.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(24.dp))
-                HorizontalDivider()
-                Text(
-                    text = "Recent bekeken",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                )
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f, fill = false)
                         .verticalScroll(rememberScrollState()),
                 ) {
-                    state.recent.forEach { row ->
-                        RecentVehicleRow(
-                            row = row,
-                            winPercent = state.recentWinPercent[row.kenteken],
-                            isMyVehicle = isSameKenteken(row.kenteken, state.myVehicleKenteken),
-                            onClick = { onEvent(HomeEvent.OnRecentRowClick(row.kenteken)) },
-                            onSetMyVehicle = { onEvent(HomeEvent.OnRecentSetMyVehicle(row.kenteken)) },
-                        )
+                    if (state.latestReviewed.isNotEmpty()) {
                         HorizontalDivider()
+                        Text(
+                            text = "Recent beoordeeld",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        )
+                        state.latestReviewed.forEach { row ->
+                            LatestReviewedRow(
+                                row = row,
+                                onClick = { onEvent(HomeEvent.OnLatestReviewedClick(row.kenteken)) },
+                            )
+                            HorizontalDivider()
+                        }
+                    }
+
+                    if (state.recent.isNotEmpty()) {
+                        if (state.latestReviewed.isEmpty()) {
+                            HorizontalDivider()
+                        }
+                        Text(
+                            text = "Recent bekeken",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        )
+                        state.recent.forEach { row ->
+                            RecentVehicleRow(
+                                row = row,
+                                winPercent = state.recentWinPercent[row.kenteken],
+                                isMyVehicle = isSameKenteken(row.kenteken, state.myVehicleKenteken),
+                                onClick = { onEvent(HomeEvent.OnRecentRowClick(row.kenteken)) },
+                                onSetMyVehicle = { onEvent(HomeEvent.OnRecentSetMyVehicle(row.kenteken)) },
+                            )
+                            HorizontalDivider()
+                        }
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun LatestReviewedRow(
+    row: LatestReviewedPlate,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = formatLicensePlate(row.kenteken),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            val subtitle = buildString {
+                append(formatHomeAverageRating(row.averageRating))
+                append(" · ")
+                append(row.reviewCount)
+                append(if (row.reviewCount == 1) " beoordeling" else " beoordelingen")
+            }
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            row.latestText?.takeIf { it.isNotBlank() }?.let { snippet ->
+                Text(
+                    text = snippet,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        StarRating(
+            rating = row.averageRating.toInt().coerceIn(1, 5),
+            starSizeSp = 18f,
+        )
+    }
+}
+
+private fun formatHomeAverageRating(average: Float): String {
+    val tenths = ((average * 10f) + 0.5f).toInt()
+    val whole = tenths / 10
+    val fraction = tenths % 10
+    return if (fraction == 0) "$whole" else "$whole,$fraction"
 }
 
 @Composable
