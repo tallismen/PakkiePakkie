@@ -17,3 +17,5 @@ captures
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
 /signing/keystore.production.properties
+.firebase/
+shared/kotlin-js-store/

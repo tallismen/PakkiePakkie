@@ -1,4 +1,5 @@
 import org.jetbrains.compose.ExperimentalComposeLibrary
+import org.jetbrains.kotlin.gradle.dsl.JsModuleKind
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSetTree
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 
@@ -22,9 +23,8 @@ kotlin {
     }
 
     listOf(
-        iosX64(),
         iosArm64(),
-        iosSimulatorArm64()
+        iosSimulatorArm64(),
     ).forEach {
         it.binaries.framework {
             baseName = "ComposeApp"
@@ -33,7 +33,27 @@ kotlin {
         }
     }
 
+    js {
+        browser {
+            commonWebpackConfig {
+                outputFileName = "pakkiepakkie.js"
+            }
+        }
+        binaries.executable()
+        compilerOptions {
+            moduleKind.set(JsModuleKind.MODULE_ES)
+        }
+    }
+
+    applyDefaultHierarchyTemplate()
+
     sourceSets {
+        val nonWebMain by creating {
+            dependsOn(commonMain.get())
+        }
+        androidMain.get().dependsOn(nonWebMain)
+        iosMain.get().dependsOn(nonWebMain)
+
         commonMain {
             kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
         }
@@ -63,13 +83,19 @@ kotlin {
             implementation(libs.coil)
             implementation(libs.coil.network.ktor)
             implementation(libs.kotlinx.datetime)
+            implementation(libs.oidc.appsupport)
+            implementation(libs.oidc.ktor)
+            implementation(libs.gitlive.firebase.app)
+            implementation(libs.gitlive.firebase.auth)
+            implementation(libs.gitlive.firebase.firestore)
+        }
+
+        nonWebMain.dependencies {
             implementation(libs.room.runtime)
             implementation(libs.sqlite.bundled)
             implementation(libs.androidx.datastore.core)
             implementation(libs.androidx.datastore.preferences)
             implementation(libs.androidx.datastore.preferences.core)
-            implementation(libs.oidc.appsupport)
-            implementation(libs.oidc.ktor)
         }
 
         commonTest.dependencies {
@@ -91,6 +117,9 @@ kotlin {
             implementation(libs.ktor.client.darwin)
         }
 
+        jsMain.dependencies {
+            implementation(libs.ktor.client.js)
+        }
     }
 }
 
@@ -99,7 +128,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        minSdk = 21
+        minSdk = 24
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -110,6 +139,17 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+
+configurations.configureEach {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "io.insert-koin" &&
+            (requested.name == "koin-annotations" || requested.name.startsWith("koin-annotations-"))
+        ) {
+            useVersion(libs.versions.koinAnnotations.get())
+            because("Keep Koin Annotations 2.3.1 for KSP MetaModule support")
+        }
     }
 }
 
@@ -141,16 +181,15 @@ room {
 dependencies {
     with(libs.room.compiler) {
         add("kspAndroid", this)
-        add("kspIosX64", this)
         add("kspIosArm64", this)
         add("kspIosSimulatorArm64", this)
     }
 
     add("kspCommonMainMetadata", libs.koin.annotations.ksp)
     add("kspAndroid", libs.koin.annotations.ksp)
-    add("kspIosX64", libs.koin.annotations.ksp)
     add("kspIosArm64", libs.koin.annotations.ksp)
     add("kspIosSimulatorArm64", libs.koin.annotations.ksp)
+    add("kspJs", libs.koin.annotations.ksp)
 }
 
 ksp {
@@ -158,20 +197,19 @@ ksp {
 }
 
 project.afterEvaluate {
-    // Room generates `VehicleDatabase_Impl` (etc.) per platform; these tasks must stay enabled.
     tasks.named("kspDebugKotlinAndroid") {
         dependsOn(tasks.named("kspCommonMainKotlinMetadata"))
     }
     tasks.named("kspReleaseKotlinAndroid") {
         dependsOn(tasks.named("kspCommonMainKotlinMetadata"))
     }
-    tasks.named("kspKotlinIosX64") {
-        dependsOn(tasks.named("kspCommonMainKotlinMetadata"))
-    }
     tasks.named("kspKotlinIosArm64") {
         dependsOn(tasks.named("kspCommonMainKotlinMetadata"))
     }
     tasks.named("kspKotlinIosSimulatorArm64") {
+        dependsOn(tasks.named("kspCommonMainKotlinMetadata"))
+    }
+    tasks.matching { it.name.startsWith("kspKotlinJs") }.configureEach {
         dependsOn(tasks.named("kspCommonMainKotlinMetadata"))
     }
 }

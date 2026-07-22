@@ -1,20 +1,23 @@
 package nl.designlama.pakkiepakkie.di
 
-import nl.designlama.pakkiepakkie.data.local.buildVehicleDatabase
+import nl.designlama.pakkiepakkie.data.local.RoomVehicleLookupStore
 import nl.designlama.pakkiepakkie.data.local.VehicleDatabase
+import nl.designlama.pakkiepakkie.data.local.VehicleLookupStore
+import nl.designlama.pakkiepakkie.data.local.buildVehicleDatabase
 import nl.designlama.pakkiepakkie.data.local.vehicleDatabaseBuilder
+import nl.designlama.pakkiepakkie.datastore.AppSettings
+import nl.designlama.pakkiepakkie.datastore.DataStoreAppSettings
 import nl.designlama.pakkiepakkie.datastore.EncryptedDataStore
-import nl.designlama.pakkiepakkie.network.NetworkConfig
-import nl.designlama.pakkiepakkie.datastore.PrefsDataStore
 import nl.designlama.pakkiepakkie.datastore.createDataStore
 import nl.designlama.pakkiepakkie.datastore.dataStoreFileName
+import nl.designlama.pakkiepakkie.network.NetworkConfig
 import nl.designlama.pakkiepakkie.utils.AppConfig
 import kotlinx.cinterop.ExperimentalForeignApi
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.core.module.Module
 import org.koin.dsl.module
-import org.publicvalue.multiplatform.oidc.appsupport.CodeAuthFlowFactory
+import org.publicvalue.multiplatform.oidc.flows.CodeAuthFlowFactory
 import org.publicvalue.multiplatform.oidc.appsupport.IosCodeAuthFlowFactory
 import platform.Foundation.NSDocumentDirectory
 import platform.Foundation.NSFileManager
@@ -25,18 +28,20 @@ import platform.Foundation.NSUserDomainMask
 actual class PlatformModule actual constructor() {
     @OptIn(ExperimentalForeignApi::class)
     actual val module: Module = module {
-        single<PrefsDataStore> {
-            createDataStore(
-                producePath = {
-                    val documentDirectory: NSURL? = NSFileManager.defaultManager.URLForDirectory(
-                        directory = NSDocumentDirectory,
-                        inDomain = NSUserDomainMask,
-                        appropriateForURL = null,
-                        create = false,
-                        error = null,
-                    )
-                    requireNotNull(documentDirectory).path + "/$dataStoreFileName"
-                },
+        single<AppSettings> {
+            DataStoreAppSettings(
+                createDataStore(
+                    producePath = {
+                        val documentDirectory: NSURL? = NSFileManager.defaultManager.URLForDirectory(
+                            directory = NSDocumentDirectory,
+                            inDomain = NSUserDomainMask,
+                            appropriateForURL = null,
+                            create = false,
+                            error = null,
+                        )
+                        requireNotNull(documentDirectory).path + "/$dataStoreFileName"
+                    },
+                ),
             )
         }
 
@@ -50,6 +55,10 @@ actual class PlatformModule actual constructor() {
 
         single<VehicleDatabase> {
             buildVehicleDatabase(vehicleDatabaseBuilder())
+        }
+
+        single<VehicleLookupStore> {
+            RoomVehicleLookupStore(get())
         }
     }
 }

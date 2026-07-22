@@ -1,4 +1,5 @@
 import UIKit
+import FirebaseCore
 import ComposeApp
 
 @main
@@ -20,6 +21,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
+        FirebaseApp.configure()
         Koin_iosKt.doInitKoin(
             appConfig: AppConfig(
                 environment: Constants.environment,
