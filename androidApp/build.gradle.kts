@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.google.services)
 }
 
 kotlin {
@@ -21,7 +22,7 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        minSdk = 21
+        minSdk = 24
         targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
@@ -127,6 +128,9 @@ dependencies {
     implementation(libs.oidc.ktor)
     implementation(libs.oidc.appsupport)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
+
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.common)
 
     implementation(platform(libs.koin.bom))
     implementation(libs.koin.android)

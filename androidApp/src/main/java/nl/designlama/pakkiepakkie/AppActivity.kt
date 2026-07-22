@@ -7,7 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import nl.designlama.pakkiepakkie.di.AppContext
 import org.koin.android.ext.android.inject
 import org.publicvalue.multiplatform.oidc.appsupport.AndroidCodeAuthFlowFactory
-import org.publicvalue.multiplatform.oidc.appsupport.CodeAuthFlowFactory
+import org.publicvalue.multiplatform.oidc.flows.CodeAuthFlowFactory
 
 class AppActivity : ComponentActivity() {
 

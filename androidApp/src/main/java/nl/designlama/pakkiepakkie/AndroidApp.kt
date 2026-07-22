@@ -1,6 +1,7 @@
 package nl.designlama.pakkiepakkie
 
 import android.app.Application
+import com.google.firebase.FirebaseApp
 import nl.designlama.pakkiepakkie.di.AppContext
 import nl.designlama.pakkiepakkie.network.NetworkConfig
 import nl.designlama.pakkiepakkie.di.commonModule
@@ -14,13 +15,16 @@ import org.koin.core.context.stopKoin
 import org.koin.dsl.module
 import org.publicvalue.multiplatform.oidc.ExperimentalOpenIdConnect
 import org.publicvalue.multiplatform.oidc.appsupport.AndroidCodeAuthFlowFactory
-import org.publicvalue.multiplatform.oidc.appsupport.CodeAuthFlowFactory
+import org.publicvalue.multiplatform.oidc.flows.CodeAuthFlowFactory
 import org.publicvalue.multiplatform.oidc.appsupport.HandleRedirectActivity
 
 class AndroidApp : Application(), KoinComponent {
 
     override fun onCreate() {
         super.onCreate()
+        if (FirebaseApp.getApps(this).isEmpty()) {
+            FirebaseApp.initializeApp(this)
+        }
         AppContext.setApplication(applicationContext)
         configureOidcWebView(javaScriptEnabled = true)
         initKoin()

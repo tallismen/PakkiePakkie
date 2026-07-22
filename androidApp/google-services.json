@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "699861503563",
+    "project_id": "pakkiepakkie-d3336",
+    "storage_bucket": "pakkiepakkie-d3336.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:699861503563:android:16be8f0344a0deff50c7ce",
+        "android_client_info": {
+          "package_name": "nl.designlama.pakkiepakkie"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDL84cbGeVAXLvr3QiGtgTAe-DPdUdtLCM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:699861503563:android:16be8f0344a0deff50c7ce",
+        "android_client_info": {
+          "package_name": "nl.designlama.pakkiepakkie.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDL84cbGeVAXLvr3QiGtgTAe-DPdUdtLCM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:699861503563:android:16be8f0344a0deff50c7ce",
+        "android_client_info": {
+          "package_name": "nl.designlama.pakkiepakkie.stag"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDL84cbGeVAXLvr3QiGtgTAe-DPdUdtLCM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
