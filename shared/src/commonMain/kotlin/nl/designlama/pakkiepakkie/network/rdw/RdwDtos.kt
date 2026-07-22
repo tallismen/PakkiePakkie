@@ -19,6 +19,8 @@ data class RdwVehicleMainDto(
     @SerialName("variant") val variant: String? = null,
     @SerialName("uitvoering") val uitvoering: String? = null,
     @SerialName("volgnummer_wijziging_eu_typegoedkeuring") val volgnummerWijzigingEuTypegoedkeuring: String? = null,
+    @SerialName("maximale_constructiesnelheid") val maximaleConstructiesnelheid: String? = null,
+    @SerialName("opgegeven_maximum_snelheid") val opgegevenMaximumSnelheid: String? = null,
 )
 
 @OptIn(ExperimentalSerializationApi::class)

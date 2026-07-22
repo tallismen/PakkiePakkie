@@ -46,4 +46,36 @@ class RdwPowerParserTest {
         val list = Json { ignoreUnknownKeys = true }.decodeFromString<List<RdwVehicleFuelDto>>(json)
         assertEquals("100", list.first().nettoMaximumVermogen)
     }
+
+    @Test
+    fun resolveOfficialPowerKw_usesRatioTimesMassForHybrids() {
+        val fuelRows = listOf(
+            RdwVehicleFuelDto(nettoMaximumVermogen = "80"),
+            RdwVehicleFuelDto(nettoMaximumVermogen = "50"),
+        )
+        assertEquals(
+            135.0,
+            RdwPowerParser.resolveOfficialPowerKw(
+                vermogenMassaRijklaar = 0.09,
+                massaRijklaarKg = 1500,
+                fuelRows = fuelRows,
+            ),
+        )
+    }
+
+    @Test
+    fun resolveOfficialPowerKw_fallsBackToMaxFuelRowWhenRatioMissing() {
+        val fuelRows = listOf(
+            RdwVehicleFuelDto(nettoMaximumVermogen = "80"),
+            RdwVehicleFuelDto(nettoMaximumVermogen = "120,5"),
+        )
+        assertEquals(
+            120.5,
+            RdwPowerParser.resolveOfficialPowerKw(
+                vermogenMassaRijklaar = null,
+                massaRijklaarKg = 1500,
+                fuelRows = fuelRows,
+            ),
+        )
+    }
 }

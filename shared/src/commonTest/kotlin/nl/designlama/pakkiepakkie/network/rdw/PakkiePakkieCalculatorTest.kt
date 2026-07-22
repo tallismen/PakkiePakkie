@@ -25,6 +25,7 @@ class PakkiePakkieCalculatorTest {
         hybridKlasse = hybrid,
         versnellingsbakCode = gear,
         aantalVersnellingen = null,
+        maximaleConstructiesnelheidKmh = null,
     )
 
     @Test
@@ -57,5 +58,24 @@ class PakkiePakkieCalculatorTest {
             PakkiePakkieCalculator.transmissionMultiplier("M", ev),
             PakkiePakkieCalculator.transmissionMultiplier("A", ev),
         )
+    }
+
+    @Test
+    fun winProbability_clampedBetweenFiveAndNinetyFive() {
+        val strong = car(400.0, 1200)
+        val weak = car(50.0, 2000)
+        val pStrong = PakkiePakkieCalculator.winProbabilityPercent(strong, weak)
+        val pWeak = PakkiePakkieCalculator.winProbabilityPercent(weak, strong)
+        assertEquals(95f, pStrong)
+        assertEquals(5f, pWeak)
+    }
+
+    @Test
+    fun winProbability_chippedBoostIncreasesWinChance() {
+        val my = car(100.0, 1400)
+        val other = car(120.0, 1400)
+        val without = PakkiePakkieCalculator.winProbabilityPercent(my, other)
+        val withChip = PakkiePakkieCalculator.winProbabilityPercent(my, other, myVermogenKwOverride = 130.0)
+        assert(withChip > without)
     }
 }
