@@ -15,6 +15,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
+import pakkiepakkie.shared.generated.resources.Res
+import pakkiepakkie.shared.generated.resources.chipped_badge
 
 @Composable
 fun ChippedKentekenTitle(
@@ -52,7 +55,7 @@ fun ChippedBadge(modifier: Modifier = Modifier) {
             .padding(horizontal = 6.dp, vertical = 2.dp),
     ) {
         Text(
-            text = "CHIPPED",
+            text = stringResource(Res.string.chipped_badge),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onErrorContainer,

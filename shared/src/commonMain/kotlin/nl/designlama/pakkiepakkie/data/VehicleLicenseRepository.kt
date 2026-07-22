@@ -10,6 +10,7 @@ import nl.designlama.pakkiepakkie.data.local.VehicleLookupEntity
 import nl.designlama.pakkiepakkie.data.local.VehicleLookupStore
 import nl.designlama.pakkiepakkie.network.rdw.RdwOpenDataApi
 import nl.designlama.pakkiepakkie.network.rdw.VehicleLicensePlateInfo
+import nl.designlama.pakkiepakkie.resources.StringResources
 import nl.designlama.pakkiepakkie.ui.components.sanitizeLicensePlate
 import org.koin.core.annotation.Single
 
@@ -35,7 +36,9 @@ class VehicleLicenseRepository(
         withContext(Dispatchers.Default) {
             runCatching {
                 val norm = sanitizeLicensePlate(raw)
-                require(norm.length == 6) { "Kenteken moet 6 tekens zijn" }
+                if (norm.length != 6) {
+                    throw IllegalArgumentException(StringResources.kentekenMustBeSixChars())
+                }
                 val cached = vehicleLookupStore.getByKenteken(norm)
                 val fullRow = cached != null && cached.dataVersion >= VehicleLookupDataVersion.FULL
                 if (fullRow) {
@@ -62,7 +65,9 @@ class VehicleLicenseRepository(
         withContext(Dispatchers.Default) {
             runCatching {
                 val norm = sanitizeLicensePlate(raw)
-                require(norm.length == 6) { "Kenteken moet 6 tekens zijn" }
+                if (norm.length != 6) {
+                    throw IllegalArgumentException(StringResources.kentekenMustBeSixChars())
+                }
                 fetchFromApiAndPersist(norm)
             }
         }

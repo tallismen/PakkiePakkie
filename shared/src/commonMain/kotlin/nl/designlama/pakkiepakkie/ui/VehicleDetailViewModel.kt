@@ -17,6 +17,7 @@ import nl.designlama.pakkiepakkie.datastore.UserVehicleRepository
 import nl.designlama.pakkiepakkie.network.chipped.ChippedTuneCalculator
 import nl.designlama.pakkiepakkie.network.chipped.ChippedTuneEstimate
 import nl.designlama.pakkiepakkie.network.rdw.VehicleLicensePlateInfo
+import nl.designlama.pakkiepakkie.resources.StringResources
 import nl.designlama.pakkiepakkie.ui.components.sanitizeLicensePlate
 
 data class VehicleDetailState(
@@ -165,7 +166,7 @@ class VehicleDetailViewModel(
             val rating = _state.value.draftRating
             if (rating !in Review.MIN_RATING..Review.MAX_RATING) {
                 _state.value = _state.value.copy(
-                    reviewErrorMessage = "Kies een beoordeling van 1 tot 5 sterren",
+                    reviewErrorMessage = StringResources.ratingRequired(),
                 )
                 return@launch
             }
@@ -186,7 +187,7 @@ class VehicleDetailViewModel(
                 _state.value = _state.value.copy(
                     reviewSubmitting = false,
                     reviewErrorMessage = error.message
-                        ?: "Beoordeling opslaan is nog niet beschikbaar",
+                        ?: StringResources.reviewSaveFailed(),
                 )
             }
         }
@@ -215,7 +216,10 @@ class VehicleDetailViewModel(
         viewModelScope.launch {
             val norm = sanitizeLicensePlate(kenteken)
             if (norm.length != 6) {
-                _state.value = VehicleDetailState(loading = false, errorMessage = "Ongeldig kenteken")
+                _state.value = VehicleDetailState(
+                    loading = false,
+                    errorMessage = StringResources.kentekenInvalid(),
+                )
                 return@launch
             }
             val entity = vehicleLicenseRepository.getCachedEntity(norm)
@@ -228,7 +232,8 @@ class VehicleDetailViewModel(
             if (detail == null) {
                 _state.value = VehicleDetailState(
                     loading = false,
-                    errorMessage = result.exceptionOrNull()?.message ?: "Kon voertuig niet laden",
+                    errorMessage = result.exceptionOrNull()?.message
+                        ?: StringResources.vehicleLoadFailed(),
                 )
                 return@launch
             }

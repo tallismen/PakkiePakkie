@@ -86,4 +86,4 @@ internal object FuelSummaryMapper {
     }
 }
 
-class RdwNotFoundException(val kenteken: String) : Exception("Geen voertuig gevonden voor kenteken $kenteken")
+class RdwNotFoundException(val kenteken: String, message: String) : Exception(message)

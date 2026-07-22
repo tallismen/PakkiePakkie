@@ -33,10 +33,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import nl.designlama.pakkiepakkie.datastore.UnitPreferencesRepository
 import nl.designlama.pakkiepakkie.domain.units.UnitPreferences
+import nl.designlama.pakkiepakkie.domain.units.UnitSymbols
 import nl.designlama.pakkiepakkie.domain.units.VehicleDisplayFormatter
 import nl.designlama.pakkiepakkie.network.chipped.ChippedTuneCalculator
 import nl.designlama.pakkiepakkie.network.chipped.ChippedTuneEstimate
 import nl.designlama.pakkiepakkie.network.rdw.PakkiePakkieCalculator
+import nl.designlama.pakkiepakkie.network.rdw.RdwTransmissionCodes
 import nl.designlama.pakkiepakkie.network.rdw.VehicleLicensePlateInfo
 import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieGauge
 import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieText
@@ -47,17 +49,49 @@ import nl.designlama.pakkiepakkie.ui.components.ChippedVehicleCard
 import nl.designlama.pakkiepakkie.ui.components.ReviewEditorSheet
 import nl.designlama.pakkiepakkie.ui.components.ReviewListItem
 import nl.designlama.pakkiepakkie.ui.components.StarRating
-import org.jetbrains.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
+import pakkiepakkie.shared.generated.resources.Res
+import pakkiepakkie.shared.generated.resources.action_clear_my_vehicle
+import pakkiepakkie.shared.generated.resources.action_close
+import pakkiepakkie.shared.generated.resources.action_done
+import pakkiepakkie.shared.generated.resources.action_edit_review
+import pakkiepakkie.shared.generated.resources.action_set_my_vehicle
+import pakkiepakkie.shared.generated.resources.action_write_review
+import pakkiepakkie.shared.generated.resources.compare_caption_this_short
+import pakkiepakkie.shared.generated.resources.compare_caption_this_vehicle
+import pakkiepakkie.shared.generated.resources.compare_caption_your_short
+import pakkiepakkie.shared.generated.resources.compare_caption_your_vehicle
+import pakkiepakkie.shared.generated.resources.compare_label_fuel
+import pakkiepakkie.shared.generated.resources.compare_label_pk_per_kg
+import pakkiepakkie.shared.generated.resources.compare_label_power_stage1
+import pakkiepakkie.shared.generated.resources.compare_label_top_speed
+import pakkiepakkie.shared.generated.resources.compare_label_transmission
+import pakkiepakkie.shared.generated.resources.compare_power_estimated_suffix
+import pakkiepakkie.shared.generated.resources.compare_set_my_car_hint
+import pakkiepakkie.shared.generated.resources.compare_win_chance_disclaimer
+import pakkiepakkie.shared.generated.resources.compare_win_chance_title
+import pakkiepakkie.shared.generated.resources.review_average_summary
+import pakkiepakkie.shared.generated.resources.review_count_one
+import pakkiepakkie.shared.generated.resources.review_count_other
+import pakkiepakkie.shared.generated.resources.reviews_empty
+import pakkiepakkie.shared.generated.resources.reviews_section_title
+import pakkiepakkie.shared.generated.resources.transmission_automatic
+import pakkiepakkie.shared.generated.resources.transmission_cvt
+import pakkiepakkie.shared.generated.resources.transmission_dct
+import pakkiepakkie.shared.generated.resources.transmission_manual
+import pakkiepakkie.shared.generated.resources.unit_speed_kmh
 
+@Composable
 internal fun versnellingsbakDisplayNl(code: String?): String = when (code?.trim()?.uppercase()) {
-    "A" -> "Automaat"
-    "M" -> "Handgeschakeld"
-    "C" -> "CVT"
-    "G", "D" -> "Dubbele koppeling / robot"
-    null, "" -> "—"
+    RdwTransmissionCodes.AUTOMATIC -> stringResource(Res.string.transmission_automatic)
+    RdwTransmissionCodes.MANUAL -> stringResource(Res.string.transmission_manual)
+    RdwTransmissionCodes.CVT -> stringResource(Res.string.transmission_cvt)
+    RdwTransmissionCodes.DCT_G, RdwTransmissionCodes.DCT_D -> stringResource(Res.string.transmission_dct)
+    null, "" -> UnitSymbols.EM_DASH
     else -> code.trim()
 }
 
@@ -150,7 +184,7 @@ private fun VehicleCompareScaffold(
                 ) {
                     PakkiePakkieText(text = state.errorMessage.orEmpty(), textColor = MaterialTheme.colorScheme.error)
                     Spacer(Modifier.height(16.dp))
-                    Button(onClick = onBack) { Text("Sluiten") }
+                    Button(onClick = onBack) { Text(stringResource(Res.string.action_close)) }
                 }
             }
 
@@ -226,7 +260,7 @@ private fun VehicleCompareContent(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
-                    text = "Jouw kans om te winnen vs dit voertuig",
+                    text = stringResource(Res.string.compare_win_chance_title),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -236,7 +270,7 @@ private fun VehicleCompareContent(
                 if (my != null) {
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        text = "Schatting — nooit 0% of 100% omdat echte races variabel zijn.",
+                        text = stringResource(Res.string.compare_win_chance_disclaimer),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -245,7 +279,7 @@ private fun VehicleCompareContent(
                 if (my == null) {
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "Stel je auto in via ☆ op de startpagina om een percentage te zien.",
+                        text = stringResource(Res.string.compare_set_my_car_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -257,7 +291,7 @@ private fun VehicleCompareContent(
         Spacer(Modifier.height(16.dp))
 
         ChippedVehicleCard(
-            caption = "Dit voertuig",
+            caption = stringResource(Res.string.compare_caption_this_vehicle),
             kenteken = detail.kenteken,
             isChipped = state.detailIsChipped,
             tune = state.detailTune,
@@ -268,7 +302,7 @@ private fun VehicleCompareContent(
         if (my != null && !isMyVehicle) {
             Spacer(Modifier.height(8.dp))
             ChippedVehicleCard(
-                caption = "Jouw voertuig",
+                caption = stringResource(Res.string.compare_caption_your_vehicle),
                 kenteken = my.kenteken,
                 isChipped = state.myIsChipped,
                 tune = state.myTune,
@@ -292,19 +326,19 @@ private fun VehicleCompareContent(
             ) {
                 CompareRow(
                     label = powerCompareLabel(
-                        formatter = displayFormatter,
                         prefs = unitPreferences,
                         showStage1 = state.detailIsChipped || state.myIsChipped,
                     ),
                     detailText = formatEffectivePower(detail, state.detailIsChipped, state.detailTune, displayFormatter, unitPreferences),
-                    myText = my?.let { formatEffectivePower(it, state.myIsChipped, state.myTune, displayFormatter, unitPreferences) } ?: "—",
+                    myText = my?.let { formatEffectivePower(it, state.myIsChipped, state.myTune, displayFormatter, unitPreferences) }
+                        ?: UnitSymbols.EM_DASH,
                     trend = compareHigherBetter(detailKw, myKw),
                 )
                 CompareDivider()
                 CompareRow(
-                    label = "Pk per kilo",
+                    label = stringResource(Res.string.compare_label_pk_per_kg),
                     detailText = displayFormatter.formatPkPerKilo(detail),
-                    myText = my?.let { displayFormatter.formatPkPerKilo(it) } ?: "—",
+                    myText = my?.let { displayFormatter.formatPkPerKilo(it) } ?: UnitSymbols.EM_DASH,
                     trend = compareHigherBetter(
                         displayFormatter.pkPerKilo(detail),
                         my?.let { displayFormatter.pkPerKilo(it) },
@@ -312,7 +346,7 @@ private fun VehicleCompareContent(
                 )
                 CompareDivider()
                 CompareRow(
-                    label = displayFormatter.weightLabel(unitPreferences, rijklaar = true),
+                    label = weightSpecLabel(unitPreferences, rijklaar = true),
                     detailText = displayFormatter.formatWeight(detail.massaRijklaarKg, unitPreferences),
                     myText = displayFormatter.formatWeight(my?.massaRijklaarKg, unitPreferences),
                     trend = compareLowerBetter(
@@ -323,7 +357,7 @@ private fun VehicleCompareContent(
                 )
                 CompareDivider()
                 CompareRow(
-                    label = displayFormatter.weightLabel(unitPreferences, rijklaar = false),
+                    label = weightSpecLabel(unitPreferences, rijklaar = false),
                     detailText = displayFormatter.formatWeight(detail.massaLedigKg, unitPreferences),
                     myText = displayFormatter.formatWeight(my?.massaLedigKg, unitPreferences),
                     trend = compareLowerBetter(
@@ -334,7 +368,7 @@ private fun VehicleCompareContent(
                 )
                 CompareDivider()
                 CompareRow(
-                    label = "Top snelheid",
+                    label = stringResource(Res.string.compare_label_top_speed),
                     detailText = formatTopSpeed(detail.maximaleConstructiesnelheidKmh),
                     myText = formatTopSpeed(my?.maximaleConstructiesnelheidKmh),
                     trend = compareHigherBetter(
@@ -344,14 +378,15 @@ private fun VehicleCompareContent(
                 )
                 CompareDivider()
                 CompareRow(
-                    label = "Brandstof",
-                    detailText = detail.brandstofOmschrijvingen.takeIf { it.isNotEmpty() }?.joinToString(", ") ?: "—",
-                    myText = my?.brandstofOmschrijvingen.orEmpty().joinToString(", ").ifBlank { "—" },
+                    label = stringResource(Res.string.compare_label_fuel),
+                    detailText = detail.brandstofOmschrijvingen.takeIf { it.isNotEmpty() }?.joinToString(", ")
+                        ?: UnitSymbols.EM_DASH,
+                    myText = my?.brandstofOmschrijvingen.orEmpty().joinToString(", ").ifBlank { UnitSymbols.EM_DASH },
                     trend = CompareTrend.Neutral,
                 )
                 CompareDivider()
                 CompareRow(
-                    label = "Versnellingsbak",
+                    label = stringResource(Res.string.compare_label_transmission),
                     detailText = versnellingsbakDisplayNl(detail.versnellingsbakCode),
                     myText = versnellingsbakDisplayNl(my?.versnellingsbakCode),
                     trend = compareTransmission(detail, my),
@@ -373,21 +408,21 @@ private fun VehicleCompareContent(
                 onClick = { onEvent(VehicleDetailEvent.OnClearAsMyVehicle) },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Niet meer mijn auto")
+                Text(stringResource(Res.string.action_clear_my_vehicle))
             }
         } else {
             OutlinedButton(
                 onClick = { onEvent(VehicleDetailEvent.OnSetAsMyVehicle) },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Dit is mijn auto")
+                Text(stringResource(Res.string.action_set_my_vehicle))
             }
         }
 
         Spacer(Modifier.height(8.dp))
 
         Button(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-            Text("Klaar")
+            Text(stringResource(Res.string.action_done))
         }
     }
 }
@@ -410,7 +445,7 @@ private fun ReviewsSection(
                 .padding(16.dp),
         ) {
             Text(
-                text = "Beoordelingen",
+                text = stringResource(Res.string.reviews_section_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -423,9 +458,17 @@ private fun ReviewsSection(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     StarRating(rating = average.toInt().coerceIn(1, 5), starSizeSp = 18f)
+                    val countLabel = if (state.reviews.size == 1) {
+                        stringResource(Res.string.review_count_one, state.reviews.size)
+                    } else {
+                        stringResource(Res.string.review_count_other, state.reviews.size)
+                    }
                     Text(
-                        text = "${formatAverageRating(average)} · ${state.reviews.size} " +
-                            if (state.reviews.size == 1) "beoordeling" else "beoordelingen",
+                        text = stringResource(
+                            Res.string.review_average_summary,
+                            formatAverageRating(average),
+                            countLabel,
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -433,7 +476,7 @@ private fun ReviewsSection(
                 Spacer(modifier = Modifier.height(8.dp))
             } else {
                 Text(
-                    text = "Nog geen beoordelingen",
+                    text = stringResource(Res.string.reviews_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -455,9 +498,9 @@ private fun ReviewsSection(
             ) {
                 Text(
                     text = if (state.myReview != null) {
-                        "Bewerk jouw beoordeling"
+                        stringResource(Res.string.action_edit_review)
                     } else {
-                        "Schrijf een beoordeling"
+                        stringResource(Res.string.action_write_review)
                     },
                 )
             }
@@ -472,15 +515,21 @@ private fun formatAverageRating(average: Float): String {
     return if (fraction == 0) "$whole" else "$whole,$fraction"
 }
 
+@Composable
 private fun formatTopSpeed(kmh: Int?): String =
-    kmh?.let { "$it km/h" } ?: "—"
+    kmh?.let { stringResource(Res.string.unit_speed_kmh, it) } ?: UnitSymbols.EM_DASH
 
+@Composable
 private fun powerCompareLabel(
-    formatter: VehicleDisplayFormatter,
     prefs: UnitPreferences,
     showStage1: Boolean,
-): String = if (showStage1) "Vermogen (Stage 1)" else formatter.powerLabel(prefs)
+): String = if (showStage1) {
+    stringResource(Res.string.compare_label_power_stage1)
+} else {
+    powerSpecLabel(prefs)
+}
 
+@Composable
 private fun formatEffectivePower(
     info: VehicleLicensePlateInfo,
     isChipped: Boolean,
@@ -490,7 +539,11 @@ private fun formatEffectivePower(
 ): String {
     val kw = PakkiePakkieCalculator.effectiveVermogenKw(info, tune, isChipped)
     val formatted = formatter.formatPower(kw, prefs)
-    return if (isChipped && tune != null) "$formatted (geschat)" else formatted
+    return if (isChipped && tune != null) {
+        formatted + stringResource(Res.string.compare_power_estimated_suffix)
+    } else {
+        formatted
+    }
 }
 
 @Composable
@@ -565,14 +618,14 @@ private fun CompareRow(
         ) {
             CompareValueCell(
                 modifier = Modifier.weight(1f),
-                caption = "Dit",
+                caption = stringResource(Res.string.compare_caption_this_short),
                 value = detailText,
                 valueColor = detailColor,
                 suffix = arrow,
             )
             CompareValueCell(
                 modifier = Modifier.weight(1f),
-                caption = "Jouw",
+                caption = stringResource(Res.string.compare_caption_your_short),
                 value = myText,
                 valueColor = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -651,18 +704,10 @@ private fun VehicleComparePreviewContent() {
     )
 }
 
-@Preview
+@PreviewLightDark
 @Composable
-private fun VehicleCompareScreenLightPreview() {
-    PreviewContainer(isDarkTheme = false) {
-        VehicleComparePreviewContent()
-    }
-}
-
-@Preview
-@Composable
-private fun VehicleCompareScreenDarkPreview() {
-    PreviewContainer(isDarkTheme = true) {
+private fun VehicleCompareScreenPreview() {
+    PreviewContainer {
         VehicleComparePreviewContent()
     }
 }

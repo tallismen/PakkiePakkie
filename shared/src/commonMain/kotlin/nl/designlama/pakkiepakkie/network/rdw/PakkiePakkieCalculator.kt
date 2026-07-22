@@ -20,10 +20,10 @@ object PakkiePakkieCalculator {
     fun transmissionMultiplier(code: String?, brandstoffen: List<String>): Double {
         if (isPureEv(brandstoffen)) return 1.0
         return when (code?.trim()?.uppercase()) {
-            "M" -> 1.045
-            "C" -> 1.025
-            "G", "D" -> 1.03
-            "A", null, "" -> 1.0
+            RdwTransmissionCodes.MANUAL -> 1.045
+            RdwTransmissionCodes.CVT -> 1.025
+            RdwTransmissionCodes.DCT_G, RdwTransmissionCodes.DCT_D -> 1.03
+            RdwTransmissionCodes.AUTOMATIC, null, "" -> 1.0
             else -> 1.0
         }
     }
@@ -71,27 +71,32 @@ object PakkiePakkieCalculator {
     private fun fuelMultiplier(brandstoffen: List<String>, hybridKlasse: String?): Double {
         if (isPureEv(brandstoffen)) return 1.12
         if (isHybridish(brandstoffen, hybridKlasse)) return 1.06
-        if (brandstoffen.any { it.equals("Diesel", ignoreCase = true) }) return 0.985
+        if (brandstoffen.any { it.equals(RdwFuelLabels.DIESEL, ignoreCase = true) }) return 0.985
         return 1.0
     }
 
     private fun isPureEv(brandstoffen: List<String>): Boolean {
-        val hasEl = brandstoffen.any { it.equals("Elektriciteit", ignoreCase = true) }
+        val hasEl = brandstoffen.any { it.equals(RdwFuelLabels.ELEKTRICITEIT, ignoreCase = true) }
         if (!hasEl) return false
         val hasIce = brandstoffen.any { label ->
             val l = label.lowercase()
-            l.contains("benzine") || l.contains("diesel") || l.contains("gas") || l.contains("hybride")
+            l.contains(RdwFuelLabels.BENZINE, ignoreCase = true) ||
+                l.contains(RdwFuelLabels.DIESEL, ignoreCase = true) ||
+                l.contains(RdwFuelLabels.GAS, ignoreCase = true) ||
+                l.contains(RdwFuelLabels.HYBRIDE, ignoreCase = true)
         }
         return !hasIce
     }
 
     private fun isHybridish(brandstoffen: List<String>, hybridKlasse: String?): Boolean {
         if (!hybridKlasse.isNullOrBlank()) return true
-        if (brandstoffen.any { it.contains("Hybride", ignoreCase = true) }) return true
-        val hasEl = brandstoffen.any { it.equals("Elektriciteit", ignoreCase = true) }
+        if (brandstoffen.any { it.contains(RdwFuelLabels.HYBRIDE, ignoreCase = true) }) return true
+        val hasEl = brandstoffen.any { it.equals(RdwFuelLabels.ELEKTRICITEIT, ignoreCase = true) }
         val hasIce = brandstoffen.any { label ->
             val l = label.lowercase()
-            l.contains("benzine") || l.contains("diesel") || l.contains("gas")
+            l.contains(RdwFuelLabels.BENZINE, ignoreCase = true) ||
+                l.contains(RdwFuelLabels.DIESEL, ignoreCase = true) ||
+                l.contains(RdwFuelLabels.GAS, ignoreCase = true)
         }
         return hasEl && hasIce
     }

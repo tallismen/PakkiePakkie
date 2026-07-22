@@ -22,7 +22,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import nl.designlama.pakkiepakkie.data.Review
-import org.jetbrains.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
+import org.jetbrains.compose.resources.stringResource
+import pakkiepakkie.shared.generated.resources.Res
+import pakkiepakkie.shared.generated.resources.action_cancel
+import pakkiepakkie.shared.generated.resources.action_submit_review
+import pakkiepakkie.shared.generated.resources.action_update_review
+import pakkiepakkie.shared.generated.resources.review_editor_stars
+import pakkiepakkie.shared.generated.resources.review_editor_text_label
+import pakkiepakkie.shared.generated.resources.review_editor_title
+import pakkiepakkie.shared.generated.resources.review_text_counter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,7 +87,7 @@ fun ReviewEditorContent(
 ) {
     Column(modifier = modifier) {
         Text(
-            text = "Beoordeling",
+            text = stringResource(Res.string.review_editor_title),
             style = MaterialTheme.typography.titleLarge,
         )
         Spacer(modifier = Modifier.height(4.dp))
@@ -90,7 +99,7 @@ fun ReviewEditorContent(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Sterren",
+            text = stringResource(Res.string.review_editor_stars),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -111,9 +120,15 @@ fun ReviewEditorContent(
             },
             modifier = Modifier.fillMaxWidth(),
             enabled = !submitting,
-            label = { Text("Toelichting (optioneel)") },
+            label = { Text(stringResource(Res.string.review_editor_text_label)) },
             supportingText = {
-                Text("${text.length}/${Review.MAX_TEXT_LENGTH}")
+                Text(
+                    stringResource(
+                        Res.string.review_text_counter,
+                        text.length,
+                        Review.MAX_TEXT_LENGTH,
+                    ),
+                )
             },
             minLines = 3,
             maxLines = 5,
@@ -140,7 +155,7 @@ fun ReviewEditorContent(
                 enabled = !submitting,
                 modifier = Modifier.weight(1f),
             ) {
-                Text("Annuleren")
+                Text(stringResource(Res.string.action_cancel))
             }
             Button(
                 onClick = onSubmit,
@@ -154,17 +169,23 @@ fun ReviewEditorContent(
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
                 } else {
-                    Text(if (isEditing) "Bijwerken" else "Plaatsen")
+                    Text(
+                        if (isEditing) {
+                            stringResource(Res.string.action_update_review)
+                        } else {
+                            stringResource(Res.string.action_submit_review)
+                        },
+                    )
                 }
             }
         }
     }
 }
 
-@Preview
+@PreviewLightDark
 @Composable
 private fun ReviewEditorContentPreview() {
-    PreviewContainer(isDarkTheme = false) {
+    PreviewContainer {
         ReviewEditorContent(
             kenteken = "PL700K",
             rating = 4,

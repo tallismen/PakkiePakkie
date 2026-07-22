@@ -1,0 +1,137 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: reviews
+// Document ID: {kenteken}_{userId}  (e.g. AB123C_abcAnonymousUid)
+// Fields:
+//   - kenteken: string (required, exactly 6 A-Z0-9) — license plate, immutable
+//   - userId: string (required) — must equal auth.uid, immutable
+//   - rating: int (required, 1..5)
+//   - text: string|null (optional, max 160 chars)
+//   - createdAtMillis: int (required, immutable after create)
+//   - updatedAtMillis: int (required)
+//
+// Collection: latest_reviewed_plates
+// Document ID: {kenteken}
+// Fields:
+//   - kenteken: string (required, equals document id)
+//   - averageRating: number (required, 1..5)
+//   - reviewCount: int (required, >= 1)
+//   - ratingSum: int (required, >= 1)
+//   - latestReviewedAtMillis: int (required)
+//   - latestText: string|null (optional, max 160 chars)
+//
+// Access: authenticated users (including anonymous) may read all reviews /
+// plate summaries. Users may only create/update their own review document.
+// Plate aggregates may be written by any authenticated user as part of the
+// client-side upsert transaction (prototype; prefer Cloud Functions later).
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isValidKenteken(value) {
+      return value is string
+        && value.size() == 6
+        && value.matches('^[A-Z0-9]{6}$');
+    }
+
+    function isValidRating(value) {
+      return value is int && value >= 1 && value <= 5;
+    }
+
+    function isValidOptionalText(data) {
+      return !('text' in data)
+        || data.text == null
+        || (data.text is string && data.text.size() <= 160);
+    }
+
+    function isValidOptionalLatestText(data) {
+      return !('latestText' in data)
+        || data.latestText == null
+        || (data.latestText is string && data.latestText.size() <= 160);
+    }
+
+    function reviewKeysOk() {
+      return request.resource.data.keys().hasOnly([
+        'kenteken', 'userId', 'rating', 'text', 'createdAtMillis', 'updatedAtMillis'
+      ]) && request.resource.data.keys().hasAll([
+        'kenteken', 'userId', 'rating', 'createdAtMillis', 'updatedAtMillis'
+      ]);
+    }
+
+    function isValidReview() {
+      return reviewKeysOk()
+        && isValidKenteken(request.resource.data.kenteken)
+        && request.resource.data.userId is string
+        && request.resource.data.userId == request.auth.uid
+        && isValidRating(request.resource.data.rating)
+        && isValidOptionalText(request.resource.data)
+        && request.resource.data.createdAtMillis is int
+        && request.resource.data.updatedAtMillis is int
+        && request.resource.data.updatedAtMillis >= request.resource.data.createdAtMillis;
+    }
+
+    function reviewOwnerUnchanged() {
+      return request.resource.data.userId == resource.data.userId
+        && request.resource.data.kenteken == resource.data.kenteken
+        && request.resource.data.createdAtMillis == resource.data.createdAtMillis;
+    }
+
+    function reviewDocIdMatches() {
+      return request.resource.data.kenteken + '_' + request.resource.data.userId == reviewId;
+    }
+
+    function plateKeysOk() {
+      return request.resource.data.keys().hasOnly([
+        'kenteken', 'averageRating', 'reviewCount', 'ratingSum',
+        'latestReviewedAtMillis', 'latestText'
+      ]) && request.resource.data.keys().hasAll([
+        'kenteken', 'averageRating', 'reviewCount', 'ratingSum', 'latestReviewedAtMillis'
+      ]);
+    }
+
+    function isValidLatestReviewedPlate() {
+      return plateKeysOk()
+        && isValidKenteken(request.resource.data.kenteken)
+        && request.resource.data.kenteken == kenteken
+        && request.resource.data.averageRating is number
+        && request.resource.data.averageRating >= 1
+        && request.resource.data.averageRating <= 5
+        && request.resource.data.reviewCount is int
+        && request.resource.data.reviewCount >= 1
+        && request.resource.data.ratingSum is int
+        && request.resource.data.ratingSum >= 1
+        && request.resource.data.latestReviewedAtMillis is int
+        && isValidOptionalLatestText(request.resource.data);
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated()
+        && isValidReview()
+        && reviewDocIdMatches();
+      allow update: if isAuthenticated()
+        && isValidReview()
+        && reviewDocIdMatches()
+        && resource.data.userId == request.auth.uid
+        && reviewOwnerUnchanged();
+      allow delete: if false;
+    }
+
+    match /latest_reviewed_plates/{kenteken} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated()
+        && isValidLatestReviewedPlate();
+      allow delete: if false;
+    }
+  }
+}

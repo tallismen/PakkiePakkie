@@ -2,6 +2,7 @@ package nl.designlama.pakkiepakkie.datastore
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import nl.designlama.pakkiepakkie.resources.StringResources
 import nl.designlama.pakkiepakkie.ui.components.sanitizeLicensePlate
 import org.koin.core.annotation.Single
 
@@ -16,7 +17,9 @@ class UserVehicleRepository(
 
     suspend fun setMyVehicle(rawKenteken: String) {
         val norm = sanitizeLicensePlate(rawKenteken)
-        require(norm.length == 6) { "Kenteken moet 6 tekens zijn" }
+        if (norm.length != 6) {
+            throw IllegalArgumentException(StringResources.kentekenMustBeSixChars())
+        }
         preferencesRepository.saveString(PreferencesKeys.MY_VEHICLE_KENTEKEN, norm)
     }
 

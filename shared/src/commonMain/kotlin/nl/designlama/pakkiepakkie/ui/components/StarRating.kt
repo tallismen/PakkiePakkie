@@ -12,8 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import nl.designlama.pakkiepakkie.data.Review
-import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun StarRating(
@@ -51,18 +51,18 @@ fun StarRating(
     }
 }
 
-@Preview
+@PreviewLightDark
 @Composable
 private fun StarRatingReadOnlyPreview() {
-    PreviewContainer(isDarkTheme = false) {
+    PreviewContainer {
         StarRating(rating = 4, modifier = Modifier.padding(16.dp))
     }
 }
 
-@Preview
+@PreviewLightDark
 @Composable
 private fun StarRatingInteractivePreview() {
-    PreviewContainer(isDarkTheme = false) {
+    PreviewContainer {
         StarRating(
             rating = 3,
             interactive = true,

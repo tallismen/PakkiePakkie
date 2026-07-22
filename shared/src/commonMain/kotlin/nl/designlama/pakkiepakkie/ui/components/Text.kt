@@ -27,10 +27,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import nl.designlama.pakkiepakkie.theme.Black
 import nl.designlama.pakkiepakkie.ui.extentions.nonScaledSp
 import nl.designlama.pakkiepakkie.ui.fonts.getFontFamily
-import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 private fun PreviewContent() {
@@ -50,18 +50,10 @@ private fun PreviewContent() {
     )
 }
 
-@Preview
+@PreviewLightDark
 @Composable
-private fun TextLightPreview() {
-    PreviewContainer(isDarkTheme = false) {
-        PreviewContent()
-    }
-}
-
-@Preview
-@Composable
-private fun TextDarkPreview() {
-    PreviewContainer(isDarkTheme = true) {
+private fun TextPreview() {
+    PreviewContainer {
         PreviewContent()
     }
 }

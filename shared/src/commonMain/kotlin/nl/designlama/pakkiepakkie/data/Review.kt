@@ -3,7 +3,7 @@ package nl.designlama.pakkiepakkie.data
 /**
  * A user review for a license plate.
  *
- * Intended Firestore shape: collection `reviews`, document id `{kenteken}_{userId}`
+ * Firestore: collection `reviews`, document id `{kenteken}_{userId}`
  * so each user can have at most one review per plate.
  */
 data class Review(

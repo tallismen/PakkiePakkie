@@ -13,7 +13,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import nl.designlama.pakkiepakkie.data.Review
-import org.jetbrains.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
+import org.jetbrains.compose.resources.stringResource
+import pakkiepakkie.shared.generated.resources.Res
+import pakkiepakkie.shared.generated.resources.review_time_days_ago
+import pakkiepakkie.shared.generated.resources.review_time_hours_ago
+import pakkiepakkie.shared.generated.resources.review_time_just_now
+import pakkiepakkie.shared.generated.resources.review_time_minutes_ago
+import pakkiepakkie.shared.generated.resources.review_time_months_ago
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
@@ -53,6 +60,7 @@ fun ReviewListItem(
 }
 
 @OptIn(ExperimentalTime::class)
+@Composable
 private fun formatReviewTimestamp(epochMillis: Long): String {
     if (epochMillis <= 0L) return ""
     val now = Clock.System.now().toEpochMilliseconds()
@@ -61,20 +69,20 @@ private fun formatReviewTimestamp(epochMillis: Long): String {
     val hours = (deltaSeconds % 86_400L) / 3_600L
     val minutes = (deltaSeconds % 3_600L) / 60L
     return when {
-        days > 30 -> "${days / 30} mnd geleden"
-        days > 0 -> "$days d geleden"
-        hours > 0 -> "$hours u geleden"
-        minutes > 0 -> "$minutes min geleden"
-        else -> "Zojuist"
+        days > 30 -> stringResource(Res.string.review_time_months_ago, (days / 30).toInt())
+        days > 0 -> stringResource(Res.string.review_time_days_ago, days.toInt())
+        hours > 0 -> stringResource(Res.string.review_time_hours_ago, hours.toInt())
+        minutes > 0 -> stringResource(Res.string.review_time_minutes_ago, minutes.toInt())
+        else -> stringResource(Res.string.review_time_just_now)
     }
 }
 
 @OptIn(ExperimentalTime::class)
-@Preview
+@PreviewLightDark
 @Composable
 private fun ReviewListItemPreview() {
     val now = Clock.System.now().toEpochMilliseconds()
-    PreviewContainer(isDarkTheme = false) {
+    PreviewContainer {
         ReviewListItem(
             review = Review(
                 id = "PL700K_user1",

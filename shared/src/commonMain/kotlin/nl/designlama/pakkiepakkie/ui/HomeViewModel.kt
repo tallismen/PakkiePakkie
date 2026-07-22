@@ -20,6 +20,7 @@ import nl.designlama.pakkiepakkie.datastore.UserVehicleRepository
 import nl.designlama.pakkiepakkie.network.chipped.ChippedTuneCalculator
 import nl.designlama.pakkiepakkie.network.rdw.PakkiePakkieCalculator
 import nl.designlama.pakkiepakkie.network.rdw.VehicleLicensePlateInfo
+import nl.designlama.pakkiepakkie.resources.StringResources
 import nl.designlama.pakkiepakkie.ui.components.MAX_RAW_LENGTH
 import nl.designlama.pakkiepakkie.ui.components.sanitizeLicensePlate
 
@@ -165,7 +166,7 @@ class HomeViewModel(
                 if (norm.length != 6) {
                     _state.value = _state.value.copy(
                         loading = false,
-                        errorMessage = "Kenteken moet 6 tekens zijn",
+                        errorMessage = StringResources.kentekenMustBeSixChars(),
                     )
                     return@launch
                 }

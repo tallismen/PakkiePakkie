@@ -64,6 +64,7 @@ kotlin {
             implementation(compose.material3)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
+            implementation(compose.preview)
             implementation(libs.kermit)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.ktor.client.core)

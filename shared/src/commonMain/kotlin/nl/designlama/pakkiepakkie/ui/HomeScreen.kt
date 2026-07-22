@@ -39,10 +39,20 @@ import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieText
 import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieTopBar
 import nl.designlama.pakkiepakkie.ui.components.PreviewContainer
 import nl.designlama.pakkiepakkie.ui.components.StarRating
+import nl.designlama.pakkiepakkie.ui.components.UiSymbols
 import nl.designlama.pakkiepakkie.ui.components.formatLicensePlate
 import nl.designlama.pakkiepakkie.ui.components.sanitizeLicensePlate
-import org.jetbrains.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import pakkiepakkie.shared.generated.resources.Res
+import pakkiepakkie.shared.generated.resources.action_search_vehicle
+import pakkiepakkie.shared.generated.resources.home_section_latest_reviewed
+import pakkiepakkie.shared.generated.resources.home_section_recent_viewed
+import pakkiepakkie.shared.generated.resources.home_title
+import pakkiepakkie.shared.generated.resources.review_count_one
+import pakkiepakkie.shared.generated.resources.review_count_other
+import pakkiepakkie.shared.generated.resources.review_average_summary
 
 @Composable
 fun HomeScreen(
@@ -79,11 +89,12 @@ private fun HomeContent(
         modifier = modifier.fillMaxSize(),
         topBar = {
             PakkiePakkieTopBar(
-                title = "PakkiePakkie",
+                title = stringResource(Res.string.home_title),
+                brandedTitle = true,
                 actions = {
                     IconButton(onClick = { onEvent(HomeEvent.OnSettingsClick) }) {
                         Text(
-                            text = "⚙",
+                            text = UiSymbols.SETTINGS,
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -122,7 +133,7 @@ private fun HomeContent(
                     enabled = state.canSearch,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(text = "Zoek voertuig")
+                    Text(text = stringResource(Res.string.action_search_vehicle))
                 }
 
                 if (state.loading) {
@@ -150,7 +161,7 @@ private fun HomeContent(
                     if (state.latestReviewed.isNotEmpty()) {
                         HorizontalDivider()
                         Text(
-                            text = "Recent beoordeeld",
+                            text = stringResource(Res.string.home_section_latest_reviewed),
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -169,7 +180,7 @@ private fun HomeContent(
                             HorizontalDivider()
                         }
                         Text(
-                            text = "Recent bekeken",
+                            text = stringResource(Res.string.home_section_recent_viewed),
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -211,12 +222,16 @@ private fun LatestReviewedRow(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
-            val subtitle = buildString {
-                append(formatHomeAverageRating(row.averageRating))
-                append(" · ")
-                append(row.reviewCount)
-                append(if (row.reviewCount == 1) " beoordeling" else " beoordelingen")
+            val countLabel = if (row.reviewCount == 1) {
+                stringResource(Res.string.review_count_one, row.reviewCount)
+            } else {
+                stringResource(Res.string.review_count_other, row.reviewCount)
             }
+            val subtitle = stringResource(
+                Res.string.review_average_summary,
+                formatHomeAverageRating(row.averageRating),
+                countLabel,
+            )
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodyMedium,
@@ -291,7 +306,7 @@ private fun RecentVehicleRow(
         )
         IconButton(onClick = onSetMyVehicle, modifier = Modifier.padding(end = 4.dp)) {
             Text(
-                text = if (isMyVehicle) "★" else "☆",
+                text = if (isMyVehicle) UiSymbols.STAR_FILLED else UiSymbols.STAR_OUTLINE,
                 style = MaterialTheme.typography.titleMedium,
                 color = if (isMyVehicle) {
                     MaterialTheme.colorScheme.primary
@@ -344,18 +359,10 @@ private fun PreviewContent() {
     )
 }
 
-@Preview
+@PreviewLightDark
 @Composable
-private fun HomeScreenLightPreview() {
-    PreviewContainer(isDarkTheme = false) {
-        PreviewContent()
-    }
-}
-
-@Preview
-@Composable
-private fun HomeScreenDarkPreview() {
-    PreviewContainer(isDarkTheme = true) {
+private fun HomeScreenPreview() {
+    PreviewContainer {
         PreviewContent()
     }
 }

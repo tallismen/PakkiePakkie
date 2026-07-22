@@ -9,53 +9,38 @@ import org.koin.core.annotation.Single
 class VehicleDisplayFormatter {
 
     fun formatPower(kw: Double?, preferences: UnitPreferences): String {
-        if (kw == null) return "—"
+        if (kw == null) return UnitSymbols.EM_DASH
         return when {
             preferences.preset == UnitPreset.Standaard && preferences.powerUnit == PowerUnit.Kw -> {
                 val kwTxt = kw.roundToInt()
                 val pk = (kw * UnitConversions.KW_TO_PK).roundToInt()
-                "$kwTxt kW ($pk pk)"
+                "$kwTxt ${UnitSymbols.KW} ($pk ${UnitSymbols.PK})"
             }
-            preferences.powerUnit == PowerUnit.Kw -> "${kw.roundToInt()} kW"
+            preferences.powerUnit == PowerUnit.Kw -> "${kw.roundToInt()} ${UnitSymbols.KW}"
             preferences.powerUnit == PowerUnit.Hp -> {
                 val hp = (kw * UnitConversions.KW_TO_HP).roundToInt()
-                "$hp HP"
+                "$hp ${UnitSymbols.HP}"
             }
             preferences.powerUnit == PowerUnit.Pakkies -> {
                 val pakkies = kw / UnitConversions.KW_PER_PAKKIE
-                formatDecimal(pakkies, 1) + " Pakkies"
+                "${formatDecimal(pakkies, 1)} ${UnitSymbols.PAKKIES}"
             }
-            else -> "${kw.roundToInt()} kW"
+            else -> "${kw.roundToInt()} ${UnitSymbols.KW}"
         }
     }
 
     fun formatWeight(kg: Int?, preferences: UnitPreferences): String {
-        if (kg == null) return "—"
+        if (kg == null) return UnitSymbols.EM_DASH
         return when (preferences.weightUnit) {
-            WeightUnit.Kg -> "$kg kg"
+            WeightUnit.Kg -> "$kg ${UnitSymbols.KG}"
             WeightUnit.Lbs -> {
                 val lbs = (kg * UnitConversions.KG_TO_LBS).roundToInt()
-                "$lbs lbs"
+                "$lbs ${UnitSymbols.LBS}"
             }
             WeightUnit.Slippers -> {
                 val slippers = (kg / UnitConversions.KG_PER_SLIPPER).roundToInt()
-                "$slippers slippers"
+                "$slippers ${UnitSymbols.SLIPPERS}"
             }
-        }
-    }
-
-    fun powerLabel(preferences: UnitPreferences): String = when (preferences.powerUnit) {
-        PowerUnit.Kw -> if (preferences.preset == UnitPreset.Standaard) "Vermogen" else "Vermogen (kW)"
-        PowerUnit.Hp -> "Vermogen (HP)"
-        PowerUnit.Pakkies -> "Vermogen (Pakkies)"
-    }
-
-    fun weightLabel(preferences: UnitPreferences, rijklaar: Boolean): String {
-        val prefix = if (rijklaar) "Rijklaar" else "Ledig"
-        return when (preferences.weightUnit) {
-            WeightUnit.Kg -> "$prefix (kg)"
-            WeightUnit.Lbs -> "$prefix (lbs)"
-            WeightUnit.Slippers -> "$prefix (slippers)"
         }
     }
 
@@ -67,7 +52,7 @@ class VehicleDisplayFormatter {
     }
 
     fun formatPkPerKilo(info: VehicleLicensePlateInfo): String {
-        val value = pkPerKilo(info) ?: return "—"
+        val value = pkPerKilo(info) ?: return UnitSymbols.EM_DASH
         return formatDecimal(value, 2)
     }
 
