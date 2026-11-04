@@ -33,6 +33,8 @@ data class HomeState(
     val myVehicleKenteken: String? = null,
     val myVehicleInfo: VehicleLicensePlateInfo? = null,
     val recentWinPercent: Map<String, Float?> = emptyMap(),
+    /** Average win chance of my vehicle vs other recently viewed plates. */
+    val myVehicleAverageWinPercent: Float? = null,
 ) : UIState {
     val canSearch: Boolean get() = licensePlateInput.length == MAX_RAW_LENGTH && !loading
 }
@@ -72,11 +74,15 @@ class HomeViewModel(
                     }
                     buildRecentWinPercentMap(myInfo, myEntity, recent)
                 }
+                val averageWin = withContext(Dispatchers.Default) {
+                    averageWinPercentExcludingSelf(myK, winMap)
+                }
                 _state.value = _state.value.copy(
                     recent = recent,
                     myVehicleKenteken = myK,
                     myVehicleInfo = myInfo,
                     recentWinPercent = winMap,
+                    myVehicleAverageWinPercent = averageWin,
                 )
             }
         }
@@ -120,6 +126,18 @@ class HomeViewModel(
         }
     }
 
+    private fun averageWinPercentExcludingSelf(
+        myKenteken: String?,
+        winMap: Map<String, Float?>,
+    ): Float? {
+        val myNorm = myKenteken?.let { sanitizeLicensePlate(it) } ?: return null
+        val values = winMap.mapNotNull { (kenteken, percent) ->
+            if (sanitizeLicensePlate(kenteken) == myNorm) null else percent
+        }
+        if (values.isEmpty()) return null
+        return values.average().toFloat()
+    }
+
     private fun effectiveKw(info: VehicleLicensePlateInfo, isChipped: Boolean): Double? {
         if (!isChipped) return null
         return ChippedTuneCalculator.estimate(info)?.stage1Kw
@@ -132,6 +150,9 @@ class HomeViewModel(
         when (event) {
             is HomeEvent.OnLicensePlateChange -> {
                 _state.value = _state.value.copy(licensePlateInput = event.raw, errorMessage = null)
+                if (event.raw.length == MAX_RAW_LENGTH) {
+                    performLookup(event.raw)
+                }
             }
             HomeEvent.OnSearchClick -> performLookup(_state.value.licensePlateInput)
             is HomeEvent.OnRecentRowClick -> {

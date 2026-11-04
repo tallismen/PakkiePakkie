@@ -4,7 +4,9 @@ import PakkiePakkie.shared.BuildConfig
 
 data class AppConfig(
     val environment: Environment,
-    val debug: Boolean
+    val debug: Boolean,
+    val versionName: String = "1.0.0",
+    val versionCode: String = "1",
 ) {
 
     enum class Environment {

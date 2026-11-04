@@ -23,6 +23,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -48,12 +49,16 @@ fun PakkiePakkieGauge(
     modifier: Modifier = Modifier,
     sizeDp: Float = 120f,
     showLabel: Boolean = true,
+    /** When set, shown under the percent instead of the PakkiePakkie™ brand label. */
+    subtitle: String? = null,
+    percentTextStyle: TextStyle? = null,
     animationEnabled: Boolean = true,
 ) {
     val darkTheme = isSystemInDarkTheme()
     val track = MaterialTheme.colorScheme.surfaceVariant
     val brand = MaterialTheme.colorScheme.primary
     val onSurface = MaterialTheme.colorScheme.onSurface
+    val onVariant = MaterialTheme.colorScheme.onSurfaceVariant
     val targetPercent = percent?.coerceIn(0f, 100f)
     val targetKey = targetPercent?.roundToInt()
     val animatable = remember { Animatable(0f) }
@@ -94,6 +99,7 @@ fun PakkiePakkieGauge(
     val progressColor = animatedValue?.let { winChanceColor(it, darkTheme) } ?: brand
     val sweep = ((animatedValue ?: 0f) / 100f) * ARC_SWEEP_MAX
     val dim = sizeDp.dp
+    val useSubtitleLayout = !subtitle.isNullOrBlank()
 
     Box(modifier = modifier.size(dim), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.size(dim)) {
@@ -123,41 +129,58 @@ fun PakkiePakkieGauge(
             }
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            if (showLabel) {
-                val brandLabel = stringResource(Res.string.compare_gauge_brand)
-                val trademark = stringResource(Res.string.compare_gauge_trademark)
-                Text(
-                    text = buildAnnotatedString {
-                        withStyle(
-                            SpanStyle(
-                                color = brand,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                            ),
-                        ) {
-                            append(brandLabel)
-                        }
-                        withStyle(
-                            SpanStyle(
-                                color = brand,
-                                fontSize = 7.sp,
-                                fontWeight = FontWeight.Normal,
-                            ),
-                        ) {
-                            append(trademark)
-                        }
-                    },
-                )
+            when {
+                useSubtitleLayout -> {
+                    Text(
+                        text = animatedValue?.let { "${it.roundToInt()}%" } ?: UnitSymbols.EM_DASH,
+                        color = if (animatedValue != null) onSurface else onSurface,
+                        style = percentTextStyle ?: MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = subtitle.orEmpty(),
+                        color = onVariant,
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+                else -> {
+                    if (showLabel) {
+                        val brandLabel = stringResource(Res.string.compare_gauge_brand)
+                        val trademark = stringResource(Res.string.compare_gauge_trademark)
+                        Text(
+                            text = buildAnnotatedString {
+                                withStyle(
+                                    SpanStyle(
+                                        color = brand,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                    ),
+                                ) {
+                                    append(brandLabel)
+                                }
+                                withStyle(
+                                    SpanStyle(
+                                        color = brand,
+                                        fontSize = 7.sp,
+                                        fontWeight = FontWeight.Normal,
+                                    ),
+                                ) {
+                                    append(trademark)
+                                }
+                            },
+                        )
+                    }
+                    Text(
+                        text = animatedValue?.let { "${it.roundToInt()}%" } ?: UnitSymbols.EM_DASH,
+                        color = if (animatedValue != null) progressColor else onSurface,
+                        style = percentTextStyle ?: if (showLabel) {
+                            MaterialTheme.typography.headlineSmall
+                        } else {
+                            MaterialTheme.typography.labelLarge
+                        },
+                    )
+                }
             }
-            Text(
-                text = animatedValue?.let { "${it.roundToInt()}%" } ?: UnitSymbols.EM_DASH,
-                color = if (animatedValue != null) progressColor else onSurface,
-                style = if (showLabel) {
-                    MaterialTheme.typography.headlineSmall
-                } else {
-                    MaterialTheme.typography.labelLarge
-                },
-            )
         }
     }
 }

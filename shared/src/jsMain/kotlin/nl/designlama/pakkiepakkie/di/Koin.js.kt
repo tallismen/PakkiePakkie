@@ -25,6 +25,8 @@ fun initKoinForWeb(
     appConfig: AppConfig = AppConfig(
         environment = AppConfig.Environment.PRODUCTION,
         debug = false,
+        versionName = "1.0.0",
+        versionCode = "1",
     ),
 ) {
     stopKoin()

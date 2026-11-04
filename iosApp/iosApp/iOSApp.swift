@@ -22,10 +22,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
         FirebaseApp.configure()
+        let versionName = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+        let versionCode = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
         Koin_iosKt.doInitKoin(
             appConfig: AppConfig(
                 environment: Constants.environment,
-                debug: Constants.isDebugMode
+                debug: Constants.isDebugMode,
+                versionName: versionName,
+                versionCode: versionCode
             )
         )
         window?.makeKeyAndVisible()
