@@ -7,4 +7,5 @@ object UiSymbols {
     const val SETTINGS = "⚙"
     const val STAR_FILLED = "★"
     const val STAR_OUTLINE = "☆"
+    const val PROFILE = "👤"
 }

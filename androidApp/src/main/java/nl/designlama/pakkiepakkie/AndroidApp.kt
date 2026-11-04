@@ -55,7 +55,9 @@ class AndroidApp : Application(), KoinComponent {
                     single {
                         AppConfig(
                             environment = BuildConfig.ENVIRONMENT,
-                            debug = BuildConfig.DEBUG
+                            debug = BuildConfig.DEBUG,
+                            versionName = BuildConfig.VERSION_NAME,
+                            versionCode = BuildConfig.VERSION_CODE.toString(),
                         )
                     }
                     single { NetworkConfig(get()) }

@@ -21,13 +21,33 @@
 
     <!-- Screens / sections -->
     <string name="home_title">PakkiePakkie</string>
+    <string name="home_search_placeholder">Zoek op kenteken</string>
+    <string name="home_section_recent">Recent</string>
     <string name="home_section_latest_reviewed">Recent beoordeeld</string>
     <string name="home_section_recent_viewed">Recent bekeken</string>
+    <string name="home_gauge_average">Gemiddeld</string>
+    <string name="home_no_my_vehicle_title">Kies jouw auto</string>
+    <string name="home_no_my_vehicle_body">Tik op ☆ bij een recent voertuig om het als jouw auto in te stellen.</string>
+    <string name="home_profile_placeholder">PP</string>
     <string name="settings_title">Instellingen</string>
     <string name="settings_section_preset">Preset</string>
     <string name="settings_section_power">Vermogen</string>
     <string name="settings_section_weight">Gewicht</string>
     <string name="settings_preview">Voorbeeld: %1$s · %2$s</string>
+    <string name="settings_version_format">%1$s (%2$s)</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_page1_title">Kies</string>
+    <string name="onboarding_page1_subtitle">Zoek je kenteken op, en voeg je voertuig toe</string>
+    <string name="onboarding_page2_title">Vergelijk</string>
+    <string name="onboarding_page2_subtitle">Zoek een ander kenteken en bekijk de vergelijking</string>
+    <string name="onboarding_page3_title">Oordeel</string>
+    <string name="onboarding_page3_subtitle">Bekijk je Pakkiekans en beoordeel de uitkomst</string>
+    <string name="onboarding_close_cd">Sluit onboarding</string>
+
+    <!-- Test menu -->
+    <string name="test_menu_title">Test menu</string>
+    <string name="test_menu_onboarding_seen">Onboarding gezien</string>
     <string name="reviews_section_title">Beoordelingen</string>
     <string name="reviews_empty">Nog geen beoordelingen</string>
     <string name="review_editor_title">Beoordeling</string>
