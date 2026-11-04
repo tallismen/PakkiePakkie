@@ -21,6 +21,10 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import nl.designlama.pakkiepakkie.network.chipped.ChippedTuneEstimate
+import org.jetbrains.compose.resources.stringResource
+import pakkiepakkie.shared.generated.resources.Res
+import pakkiepakkie.shared.generated.resources.chipped_label
+import pakkiepakkie.shared.generated.resources.chipped_stage1_gain
 
 @Composable
 fun ChippedVehicleCard(
@@ -74,7 +78,10 @@ fun ChippedVehicleCard(
                     exit = PakkieAnimations.visibilityExit(),
                 ) {
                     Text(
-                        text = "Geschat Stage 1: +${tune?.gainPk ?: 0} pk",
+                        text = stringResource(
+                            Res.string.chipped_stage1_gain,
+                            tune?.gainPk ?: 0,
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(top = 4.dp),
@@ -86,7 +93,7 @@ fun ChippedVehicleCard(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = "Chipped",
+                    text = stringResource(Res.string.chipped_label),
                     style = MaterialTheme.typography.labelLarge,
                     color = if (canChip) {
                         MaterialTheme.colorScheme.onSurface

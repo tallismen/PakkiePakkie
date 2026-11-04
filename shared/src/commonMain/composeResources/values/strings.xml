@@ -1,13 +1,125 @@
+<?xml version="1.0" encoding="UTF-8" ?>
 <resources>
+    <!-- App -->
     <string name="app_name">PakkiePakkie</string>
 
-    <string name="ok">OK</string>
-    <string name="next">Next</string>
-    <string name="back">Back</string>
-    <string name="try_again">Try again</string>
-    <string name="unknown_error">Unknown error</string>
-    <string name="generic_error">Something went wrong</string>
+    <!-- Common actions -->
+    <string name="action_ok">OK</string>
+    <string name="action_next">Volgende</string>
+    <string name="action_back">Terug</string>
+    <string name="action_close">Sluiten</string>
+    <string name="action_done">Klaar</string>
+    <string name="action_cancel">Annuleren</string>
+    <string name="action_try_again">Opnieuw proberen</string>
+    <string name="action_search_vehicle">Zoek voertuig</string>
+    <string name="action_set_my_vehicle">Dit is mijn auto</string>
+    <string name="action_clear_my_vehicle">Niet meer mijn auto</string>
+    <string name="action_submit_review">Plaatsen</string>
+    <string name="action_update_review">Bijwerken</string>
+    <string name="action_write_review">Schrijf een beoordeling</string>
+    <string name="action_edit_review">Bewerk jouw beoordeling</string>
 
-    <string name="error_no_internet_title">No internet</string>
-    <string name="error_no_internet_desc">Connect your phone to the internet and try again.</string>
+    <!-- Screens / sections -->
+    <string name="home_title">PakkiePakkie</string>
+    <string name="home_section_latest_reviewed">Recent beoordeeld</string>
+    <string name="home_section_recent_viewed">Recent bekeken</string>
+    <string name="settings_title">Instellingen</string>
+    <string name="settings_section_preset">Preset</string>
+    <string name="settings_section_power">Vermogen</string>
+    <string name="settings_section_weight">Gewicht</string>
+    <string name="settings_preview">Voorbeeld: %1$s · %2$s</string>
+    <string name="reviews_section_title">Beoordelingen</string>
+    <string name="reviews_empty">Nog geen beoordelingen</string>
+    <string name="review_editor_title">Beoordeling</string>
+    <string name="review_editor_stars">Sterren</string>
+    <string name="review_editor_text_label">Toelichting (optioneel)</string>
+    <string name="review_text_counter">%1$d/%2$d</string>
+
+    <!-- Compare -->
+    <string name="compare_win_chance_title">Jouw kans om te winnen vs dit voertuig</string>
+    <string name="compare_win_chance_disclaimer">Schatting — nooit 0% of 100% omdat echte races variabel zijn.</string>
+    <string name="compare_set_my_car_hint">Stel je auto in via ☆ op de startpagina om een percentage te zien.</string>
+    <string name="compare_caption_this_vehicle">Dit voertuig</string>
+    <string name="compare_caption_your_vehicle">Jouw voertuig</string>
+    <string name="compare_caption_this_short">Dit</string>
+    <string name="compare_caption_your_short">Jouw</string>
+    <string name="compare_label_pk_per_kg">Pk per kilo</string>
+    <string name="compare_label_top_speed">Top snelheid</string>
+    <string name="compare_label_fuel">Brandstof</string>
+    <string name="compare_label_transmission">Versnellingsbak</string>
+    <string name="compare_label_power_stage1">Vermogen (Stage 1)</string>
+    <string name="compare_power_estimated_suffix"> (geschat)</string>
+    <string name="compare_gauge_brand">PakkiePakkie</string>
+    <string name="compare_gauge_trademark">™</string>
+    <string name="unit_speed_kmh">%1$d km/h</string>
+
+    <!-- Units / presets -->
+    <string name="unit_preset_standaard">Standaard</string>
+    <string name="unit_preset_metric">Metric</string>
+    <string name="unit_preset_imperial">Imperial</string>
+    <string name="unit_preset_pakkiepakkie">PakkiePakkie</string>
+    <string name="unit_power_kw">kW</string>
+    <string name="unit_power_hp">HP</string>
+    <string name="unit_power_pakkies">Pakkies</string>
+    <string name="unit_weight_kg">kg</string>
+    <string name="unit_weight_lbs">lbs</string>
+    <string name="unit_weight_slippers">slippers</string>
+    <string name="label_power">Vermogen</string>
+    <string name="label_power_kw">Vermogen (kW)</string>
+    <string name="label_power_hp">Vermogen (HP)</string>
+    <string name="label_power_pakkies">Vermogen (Pakkies)</string>
+    <string name="label_weight_rijklaar_kg">Rijklaar (kg)</string>
+    <string name="label_weight_rijklaar_lbs">Rijklaar (lbs)</string>
+    <string name="label_weight_rijklaar_slippers">Rijklaar (slippers)</string>
+    <string name="label_weight_ledig_kg">Ledig (kg)</string>
+    <string name="label_weight_ledig_lbs">Ledig (lbs)</string>
+    <string name="label_weight_ledig_slippers">Ledig (slippers)</string>
+    <string name="format_power_kw_pk">%1$d kW (%2$d pk)</string>
+    <string name="format_power_kw">%1$d kW</string>
+    <string name="format_power_hp">%1$d HP</string>
+    <string name="format_power_pakkies">%1$s Pakkies</string>
+    <string name="format_weight_kg">%1$d kg</string>
+    <string name="format_weight_lbs">%1$d lbs</string>
+    <string name="format_weight_slippers">%1$d slippers</string>
+    <string name="value_em_dash">—</string>
+
+    <!-- Transmission -->
+    <string name="transmission_automatic">Automaat</string>
+    <string name="transmission_manual">Handgeschakeld</string>
+    <string name="transmission_cvt">CVT</string>
+    <string name="transmission_dct">Dubbele koppeling / robot</string>
+
+    <!-- Chipped -->
+    <string name="chipped_badge">CHIPPED</string>
+    <string name="chipped_label">Chipped</string>
+    <string name="chipped_stage1_gain">Geschat Stage 1: +%1$d pk</string>
+
+    <!-- Reviews feed -->
+    <string name="review_count_one">%1$d beoordeling</string>
+    <string name="review_count_other">%1$d beoordelingen</string>
+    <string name="review_count_word_one">beoordeling</string>
+    <string name="review_count_word_other">beoordelingen</string>
+    <string name="review_average_summary">%1$s · %2$s</string>
+    <string name="review_time_just_now">Zojuist</string>
+    <string name="review_time_minutes_ago">%1$d min geleden</string>
+    <string name="review_time_hours_ago">%1$d u geleden</string>
+    <string name="review_time_days_ago">%1$d d geleden</string>
+    <string name="review_time_months_ago">%1$d mnd geleden</string>
+
+    <!-- Errors -->
+    <string name="error_unknown">Onbekende fout</string>
+    <string name="error_generic">Er ging iets mis</string>
+    <string name="error_no_internet_title">Geen internet</string>
+    <string name="error_no_internet_desc">Maak verbinding met internet en probeer het opnieuw.</string>
+    <string name="error_kenteken_length">Kenteken moet 6 tekens zijn</string>
+    <string name="error_kenteken_invalid">Ongeldig kenteken</string>
+    <string name="error_vehicle_load_failed">Kon voertuig niet laden</string>
+    <string name="error_vehicle_not_found">Geen voertuig gevonden voor kenteken %1$s</string>
+    <string name="error_rating_range">Beoordeling moet tussen 1 en 5 sterren zijn</string>
+    <string name="error_rating_required">Kies een beoordeling van 1 tot 5 sterren</string>
+    <string name="error_review_text_too_long">Tekst mag maximaal %1$d tekens zijn</string>
+    <string name="error_review_save_failed">Beoordeling opslaan is nog niet beschikbaar</string>
+
+    <!-- Accessibility / chrome -->
+    <string name="nav_back_symbol">←</string>
 </resources>

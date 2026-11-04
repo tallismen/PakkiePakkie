@@ -1,5 +1,9 @@
 {
   "projectId": "pakkiepakkie-d3336",
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
   "hosting": {
     "public": "shared/build/dist/js/productionExecutable",
     "ignore": [

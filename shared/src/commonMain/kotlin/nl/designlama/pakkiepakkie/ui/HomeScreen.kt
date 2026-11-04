@@ -31,16 +31,28 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.collectLatest
+import nl.designlama.pakkiepakkie.data.LatestReviewedPlate
 import nl.designlama.pakkiepakkie.data.local.VehicleLookupEntity
 import nl.designlama.pakkiepakkie.ui.components.DutchLicensePlateInput
 import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieGauge
 import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieText
 import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieTopBar
 import nl.designlama.pakkiepakkie.ui.components.PreviewContainer
+import nl.designlama.pakkiepakkie.ui.components.StarRating
+import nl.designlama.pakkiepakkie.ui.components.UiSymbols
 import nl.designlama.pakkiepakkie.ui.components.formatLicensePlate
 import nl.designlama.pakkiepakkie.ui.components.sanitizeLicensePlate
-import org.jetbrains.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import pakkiepakkie.shared.generated.resources.Res
+import pakkiepakkie.shared.generated.resources.action_search_vehicle
+import pakkiepakkie.shared.generated.resources.home_section_latest_reviewed
+import pakkiepakkie.shared.generated.resources.home_section_recent_viewed
+import pakkiepakkie.shared.generated.resources.home_title
+import pakkiepakkie.shared.generated.resources.review_count_one
+import pakkiepakkie.shared.generated.resources.review_count_other
+import pakkiepakkie.shared.generated.resources.review_average_summary
 
 @Composable
 fun HomeScreen(
@@ -77,11 +89,12 @@ private fun HomeContent(
         modifier = modifier.fillMaxSize(),
         topBar = {
             PakkiePakkieTopBar(
-                title = "PakkiePakkie",
+                title = stringResource(Res.string.home_title),
+                brandedTitle = true,
                 actions = {
                     IconButton(onClick = { onEvent(HomeEvent.OnSettingsClick) }) {
                         Text(
-                            text = "⚙",
+                            text = UiSymbols.SETTINGS,
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -120,7 +133,7 @@ private fun HomeContent(
                     enabled = state.canSearch,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(text = "Zoek voertuig")
+                    Text(text = stringResource(Res.string.action_search_vehicle))
                 }
 
                 if (state.loading) {
@@ -137,35 +150,117 @@ private fun HomeContent(
                 }
             }
 
-            if (state.recent.isNotEmpty()) {
+            if (state.latestReviewed.isNotEmpty() || state.recent.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(24.dp))
-                HorizontalDivider()
-                Text(
-                    text = "Recent bekeken",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                )
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f, fill = false)
                         .verticalScroll(rememberScrollState()),
                 ) {
-                    state.recent.forEach { row ->
-                        RecentVehicleRow(
-                            row = row,
-                            winPercent = state.recentWinPercent[row.kenteken],
-                            isMyVehicle = isSameKenteken(row.kenteken, state.myVehicleKenteken),
-                            onClick = { onEvent(HomeEvent.OnRecentRowClick(row.kenteken)) },
-                            onSetMyVehicle = { onEvent(HomeEvent.OnRecentSetMyVehicle(row.kenteken)) },
-                        )
+                    if (state.latestReviewed.isNotEmpty()) {
                         HorizontalDivider()
+                        Text(
+                            text = stringResource(Res.string.home_section_latest_reviewed),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        )
+                        state.latestReviewed.forEach { row ->
+                            LatestReviewedRow(
+                                row = row,
+                                onClick = { onEvent(HomeEvent.OnLatestReviewedClick(row.kenteken)) },
+                            )
+                            HorizontalDivider()
+                        }
+                    }
+
+                    if (state.recent.isNotEmpty()) {
+                        if (state.latestReviewed.isEmpty()) {
+                            HorizontalDivider()
+                        }
+                        Text(
+                            text = stringResource(Res.string.home_section_recent_viewed),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        )
+                        state.recent.forEach { row ->
+                            RecentVehicleRow(
+                                row = row,
+                                winPercent = state.recentWinPercent[row.kenteken],
+                                isMyVehicle = isSameKenteken(row.kenteken, state.myVehicleKenteken),
+                                onClick = { onEvent(HomeEvent.OnRecentRowClick(row.kenteken)) },
+                                onSetMyVehicle = { onEvent(HomeEvent.OnRecentSetMyVehicle(row.kenteken)) },
+                            )
+                            HorizontalDivider()
+                        }
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun LatestReviewedRow(
+    row: LatestReviewedPlate,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = formatLicensePlate(row.kenteken),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            val countLabel = if (row.reviewCount == 1) {
+                stringResource(Res.string.review_count_one, row.reviewCount)
+            } else {
+                stringResource(Res.string.review_count_other, row.reviewCount)
+            }
+            val subtitle = stringResource(
+                Res.string.review_average_summary,
+                formatHomeAverageRating(row.averageRating),
+                countLabel,
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            row.latestText?.takeIf { it.isNotBlank() }?.let { snippet ->
+                Text(
+                    text = snippet,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        StarRating(
+            rating = row.averageRating.toInt().coerceIn(1, 5),
+            starSizeSp = 18f,
+        )
+    }
+}
+
+private fun formatHomeAverageRating(average: Float): String {
+    val tenths = ((average * 10f) + 0.5f).toInt()
+    val whole = tenths / 10
+    val fraction = tenths % 10
+    return if (fraction == 0) "$whole" else "$whole,$fraction"
 }
 
 @Composable
@@ -211,7 +306,7 @@ private fun RecentVehicleRow(
         )
         IconButton(onClick = onSetMyVehicle, modifier = Modifier.padding(end = 4.dp)) {
             Text(
-                text = if (isMyVehicle) "★" else "☆",
+                text = if (isMyVehicle) UiSymbols.STAR_FILLED else UiSymbols.STAR_OUTLINE,
                 style = MaterialTheme.typography.titleMedium,
                 color = if (isMyVehicle) {
                     MaterialTheme.colorScheme.primary
@@ -264,18 +359,10 @@ private fun PreviewContent() {
     )
 }
 
-@Preview
+@PreviewLightDark
 @Composable
-private fun HomeScreenLightPreview() {
-    PreviewContainer(isDarkTheme = false) {
-        PreviewContent()
-    }
-}
-
-@Preview
-@Composable
-private fun HomeScreenDarkPreview() {
-    PreviewContainer(isDarkTheme = true) {
+private fun HomeScreenPreview() {
+    PreviewContainer {
         PreviewContent()
     }
 }

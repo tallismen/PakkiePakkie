@@ -10,6 +10,8 @@ import kotlinx.coroutines.withContext
 import nl.designlama.pakkiepakkie.base.BaseViewModel
 import nl.designlama.pakkiepakkie.base.UIEvent
 import nl.designlama.pakkiepakkie.base.UIState
+import nl.designlama.pakkiepakkie.data.LatestReviewedPlate
+import nl.designlama.pakkiepakkie.data.ReviewRepository
 import nl.designlama.pakkiepakkie.data.VehicleLicenseRepository
 import nl.designlama.pakkiepakkie.data.local.VehicleLookupDataVersion
 import nl.designlama.pakkiepakkie.data.local.VehicleLookupEntity
@@ -18,6 +20,7 @@ import nl.designlama.pakkiepakkie.datastore.UserVehicleRepository
 import nl.designlama.pakkiepakkie.network.chipped.ChippedTuneCalculator
 import nl.designlama.pakkiepakkie.network.rdw.PakkiePakkieCalculator
 import nl.designlama.pakkiepakkie.network.rdw.VehicleLicensePlateInfo
+import nl.designlama.pakkiepakkie.resources.StringResources
 import nl.designlama.pakkiepakkie.ui.components.MAX_RAW_LENGTH
 import nl.designlama.pakkiepakkie.ui.components.sanitizeLicensePlate
 
@@ -26,6 +29,7 @@ data class HomeState(
     val loading: Boolean = false,
     val errorMessage: String? = null,
     val recent: List<VehicleLookupEntity> = emptyList(),
+    val latestReviewed: List<LatestReviewedPlate> = emptyList(),
     val myVehicleKenteken: String? = null,
     val myVehicleInfo: VehicleLicensePlateInfo? = null,
     val recentWinPercent: Map<String, Float?> = emptyMap(),
@@ -38,12 +42,14 @@ sealed interface HomeEvent : UIEvent {
     data object OnSearchClick : HomeEvent
     data class OnRecentRowClick(val kenteken: String) : HomeEvent
     data class OnRecentSetMyVehicle(val kenteken: String) : HomeEvent
+    data class OnLatestReviewedClick(val kenteken: String) : HomeEvent
     data object OnSettingsClick : HomeEvent
 }
 
 class HomeViewModel(
     private val vehicleLicenseRepository: VehicleLicenseRepository,
     private val userVehicleRepository: UserVehicleRepository,
+    private val reviewRepository: ReviewRepository,
 ) : BaseViewModel<HomeState, HomeEvent, HomeDirections>() {
 
     private val lookupMutex = Mutex()
@@ -72,6 +78,11 @@ class HomeViewModel(
                     myVehicleInfo = myInfo,
                     recentWinPercent = winMap,
                 )
+            }
+        }
+        viewModelScope.launch {
+            reviewRepository.observeLatestReviewedPlates(20).collectLatest { latest ->
+                _state.value = _state.value.copy(latestReviewed = latest)
             }
         }
     }
@@ -127,6 +138,10 @@ class HomeViewModel(
                 _state.value = _state.value.copy(licensePlateInput = event.kenteken, errorMessage = null)
                 navigate(HomeDirections.OpenVehicleDetail(event.kenteken))
             }
+            is HomeEvent.OnLatestReviewedClick -> {
+                _state.value = _state.value.copy(licensePlateInput = event.kenteken, errorMessage = null)
+                navigate(HomeDirections.OpenVehicleDetail(event.kenteken))
+            }
             is HomeEvent.OnRecentSetMyVehicle -> {
                 viewModelScope.launch {
                     val norm = sanitizeLicensePlate(event.kenteken)
@@ -151,7 +166,7 @@ class HomeViewModel(
                 if (norm.length != 6) {
                     _state.value = _state.value.copy(
                         loading = false,
-                        errorMessage = "Kenteken moet 6 tekens zijn",
+                        errorMessage = StringResources.kentekenMustBeSixChars(),
                     )
                     return@launch
                 }

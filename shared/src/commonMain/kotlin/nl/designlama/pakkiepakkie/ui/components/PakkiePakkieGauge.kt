@@ -31,8 +31,13 @@ import androidx.compose.ui.unit.sp
 import kotlin.math.abs
 import kotlin.math.min
 import kotlin.math.roundToInt
+import nl.designlama.pakkiepakkie.domain.units.UnitSymbols
 import nl.designlama.pakkiepakkie.theme.winChanceColor
-import org.jetbrains.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
+import pakkiepakkie.shared.generated.resources.Res
+import pakkiepakkie.shared.generated.resources.compare_gauge_brand
+import pakkiepakkie.shared.generated.resources.compare_gauge_trademark
+import org.jetbrains.compose.resources.stringResource
 
 private const val ARC_START_ANGLE = 135f
 private const val ARC_SWEEP_MAX = 270f
@@ -119,6 +124,8 @@ fun PakkiePakkieGauge(
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             if (showLabel) {
+                val brandLabel = stringResource(Res.string.compare_gauge_brand)
+                val trademark = stringResource(Res.string.compare_gauge_trademark)
                 Text(
                     text = buildAnnotatedString {
                         withStyle(
@@ -128,7 +135,7 @@ fun PakkiePakkieGauge(
                                 fontWeight = FontWeight.Bold,
                             ),
                         ) {
-                            append("PakkiePakkie")
+                            append(brandLabel)
                         }
                         withStyle(
                             SpanStyle(
@@ -137,13 +144,13 @@ fun PakkiePakkieGauge(
                                 fontWeight = FontWeight.Normal,
                             ),
                         ) {
-                            append("™")
+                            append(trademark)
                         }
                     },
                 )
             }
             Text(
-                text = animatedValue?.let { "${it.roundToInt()}%" } ?: "—",
+                text = animatedValue?.let { "${it.roundToInt()}%" } ?: UnitSymbols.EM_DASH,
                 color = if (animatedValue != null) progressColor else onSurface,
                 style = if (showLabel) {
                     MaterialTheme.typography.headlineSmall
@@ -172,18 +179,10 @@ private fun PreviewContent() {
     }
 }
 
-@Preview
+@PreviewLightDark
 @Composable
-private fun PakkiePakkieGaugeLightPreview() {
-    PreviewContainer(isDarkTheme = false) {
-        PreviewContent()
-    }
-}
-
-@Preview
-@Composable
-private fun PakkiePakkieGaugeDarkPreview() {
-    PreviewContainer(isDarkTheme = true) {
+private fun PakkiePakkieGaugePreview() {
+    PreviewContainer {
         PreviewContent()
     }
 }

@@ -1,6 +1,7 @@
 package nl.designlama.pakkiepakkie.network.chipped
 
 import kotlin.math.round
+import nl.designlama.pakkiepakkie.network.rdw.RdwFuelLabels
 import nl.designlama.pakkiepakkie.network.rdw.VehicleLicensePlateInfo
 
 data class ChippedTuneEstimate(
@@ -17,9 +18,10 @@ object ChippedTuneCalculator {
         val stockPk = info.vermogenPk?.let { round(it).toInt() } ?: return null
         if (!canBeChipped(info)) return null
         val multiplier = when {
-            info.brandstofOmschrijvingen.any { it.equals("Diesel", ignoreCase = true) } -> 1.18
+            info.brandstofOmschrijvingen.any { it.equals(RdwFuelLabels.DIESEL, ignoreCase = true) } -> 1.18
             info.brandstofOmschrijvingen.any {
-                it.contains("Benzine", ignoreCase = true) || it.contains("gas", ignoreCase = true)
+                it.contains(RdwFuelLabels.BENZINE, ignoreCase = true) ||
+                    it.contains(RdwFuelLabels.GAS, ignoreCase = true)
             } -> 1.15
             else -> 1.12
         }
@@ -33,10 +35,11 @@ object ChippedTuneCalculator {
 
     fun canBeChipped(info: VehicleLicensePlateInfo): Boolean {
         val hasEvOnly = info.brandstofOmschrijvingen.any {
-            it.equals("Elektriciteit", ignoreCase = true)
+            it.equals(RdwFuelLabels.ELEKTRICITEIT, ignoreCase = true)
         } && info.brandstofOmschrijvingen.none {
-            val l = it.lowercase()
-            l.contains("benzine") || l.contains("diesel") || l.contains("gas")
+            it.contains(RdwFuelLabels.BENZINE, ignoreCase = true) ||
+                it.contains(RdwFuelLabels.DIESEL, ignoreCase = true) ||
+                it.contains(RdwFuelLabels.GAS, ignoreCase = true)
         }
         return !hasEvOnly && (info.vermogenPk ?: 0.0) > 0.0
     }

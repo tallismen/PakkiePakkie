@@ -8,6 +8,8 @@ import nl.designlama.pakkiepakkie.base.BaseViewModel
 import nl.designlama.pakkiepakkie.base.UIDirections
 import nl.designlama.pakkiepakkie.base.UIEvent
 import nl.designlama.pakkiepakkie.base.UIState
+import nl.designlama.pakkiepakkie.data.Review
+import nl.designlama.pakkiepakkie.data.ReviewRepository
 import nl.designlama.pakkiepakkie.data.VehicleLicenseRepository
 import nl.designlama.pakkiepakkie.data.local.VehicleLookupDataVersion
 import nl.designlama.pakkiepakkie.data.toVehicleLicensePlateInfo
@@ -15,6 +17,7 @@ import nl.designlama.pakkiepakkie.datastore.UserVehicleRepository
 import nl.designlama.pakkiepakkie.network.chipped.ChippedTuneCalculator
 import nl.designlama.pakkiepakkie.network.chipped.ChippedTuneEstimate
 import nl.designlama.pakkiepakkie.network.rdw.VehicleLicensePlateInfo
+import nl.designlama.pakkiepakkie.resources.StringResources
 import nl.designlama.pakkiepakkie.ui.components.sanitizeLicensePlate
 
 data class VehicleDetailState(
@@ -27,6 +30,14 @@ data class VehicleDetailState(
     val myIsChipped: Boolean = false,
     val detailTune: ChippedTuneEstimate? = null,
     val myTune: ChippedTuneEstimate? = null,
+    val reviews: List<Review> = emptyList(),
+    val myReview: Review? = null,
+    val averageRating: Float? = null,
+    val reviewSheetVisible: Boolean = false,
+    val draftRating: Int = 0,
+    val draftText: String = "",
+    val reviewSubmitting: Boolean = false,
+    val reviewErrorMessage: String? = null,
 ) : UIState {
     fun isMyVehicle(kenteken: String): Boolean {
         val norm = sanitizeLicensePlate(kenteken)
@@ -40,16 +51,23 @@ sealed interface VehicleDetailEvent : UIEvent {
     data object OnClearAsMyVehicle : VehicleDetailEvent
     data object OnToggleDetailChipped : VehicleDetailEvent
     data object OnToggleMyChipped : VehicleDetailEvent
+    data object OnOpenReviewSheet : VehicleDetailEvent
+    data object OnDismissReviewSheet : VehicleDetailEvent
+    data class OnDraftRatingChange(val rating: Int) : VehicleDetailEvent
+    data class OnDraftTextChange(val text: String) : VehicleDetailEvent
+    data object OnSubmitReview : VehicleDetailEvent
 }
 
 class VehicleDetailViewModel(
     private val vehicleLicenseRepository: VehicleLicenseRepository,
     private val userVehicleRepository: UserVehicleRepository,
+    private val reviewRepository: ReviewRepository,
     private val kenteken: String,
 ) : BaseViewModel<VehicleDetailState, VehicleDetailEvent, UIDirections>() {
 
     init {
         loadVehicle()
+        observeReviews()
         viewModelScope.launch {
             userVehicleRepository.myVehicleKentekenFlow().collectLatest { myK ->
                 val myInfo = resolveMyVehicleInfo(myK)
@@ -59,6 +77,26 @@ class VehicleDetailViewModel(
                     my = myInfo,
                     myIsChipped = myChipped,
                     myTune = if (myInfo != null && myChipped) ChippedTuneCalculator.estimate(myInfo) else null,
+                )
+            }
+        }
+        viewModelScope.launch {
+            val myReview = reviewRepository.getMyReviewForKenteken(kenteken)
+            _state.value = _state.value.copy(myReview = myReview)
+        }
+    }
+
+    private fun observeReviews() {
+        viewModelScope.launch {
+            reviewRepository.observeReviewsForKenteken(kenteken).collectLatest { reviews ->
+                val average = if (reviews.isEmpty()) {
+                    null
+                } else {
+                    reviews.map { it.rating }.average().toFloat()
+                }
+                _state.value = _state.value.copy(
+                    reviews = reviews,
+                    averageRating = average,
                 )
             }
         }
@@ -89,6 +127,69 @@ class VehicleDetailViewModel(
             }
             VehicleDetailEvent.OnToggleDetailChipped -> toggleChipped(forDetail = true)
             VehicleDetailEvent.OnToggleMyChipped -> toggleChipped(forDetail = false)
+            VehicleDetailEvent.OnOpenReviewSheet -> {
+                val existing = _state.value.myReview
+                _state.value = _state.value.copy(
+                    reviewSheetVisible = true,
+                    draftRating = existing?.rating ?: 0,
+                    draftText = existing?.text.orEmpty(),
+                    reviewErrorMessage = null,
+                    reviewSubmitting = false,
+                )
+            }
+            VehicleDetailEvent.OnDismissReviewSheet -> {
+                if (_state.value.reviewSubmitting) return
+                _state.value = _state.value.copy(
+                    reviewSheetVisible = false,
+                    reviewErrorMessage = null,
+                )
+            }
+            is VehicleDetailEvent.OnDraftRatingChange -> {
+                _state.value = _state.value.copy(
+                    draftRating = event.rating.coerceIn(Review.MIN_RATING, Review.MAX_RATING),
+                    reviewErrorMessage = null,
+                )
+            }
+            is VehicleDetailEvent.OnDraftTextChange -> {
+                val clipped = event.text.take(Review.MAX_TEXT_LENGTH)
+                _state.value = _state.value.copy(
+                    draftText = clipped,
+                    reviewErrorMessage = null,
+                )
+            }
+            VehicleDetailEvent.OnSubmitReview -> submitReview()
+        }
+    }
+
+    private fun submitReview() {
+        viewModelScope.launch {
+            val rating = _state.value.draftRating
+            if (rating !in Review.MIN_RATING..Review.MAX_RATING) {
+                _state.value = _state.value.copy(
+                    reviewErrorMessage = StringResources.ratingRequired(),
+                )
+                return@launch
+            }
+            _state.value = _state.value.copy(reviewSubmitting = true, reviewErrorMessage = null)
+            val result = reviewRepository.upsertReview(
+                kenteken = kenteken,
+                rating = rating,
+                text = _state.value.draftText,
+            )
+            result.onSuccess { saved ->
+                _state.value = _state.value.copy(
+                    reviewSubmitting = false,
+                    reviewSheetVisible = false,
+                    myReview = saved,
+                    reviewErrorMessage = null,
+                )
+            }.onFailure { error ->
+                _state.value = _state.value.copy(
+                    reviewSubmitting = false,
+                    reviewErrorMessage = error.message
+                        ?: StringResources.reviewSaveFailed(),
+                )
+            }
         }
     }
 
@@ -115,7 +216,10 @@ class VehicleDetailViewModel(
         viewModelScope.launch {
             val norm = sanitizeLicensePlate(kenteken)
             if (norm.length != 6) {
-                _state.value = VehicleDetailState(loading = false, errorMessage = "Ongeldig kenteken")
+                _state.value = VehicleDetailState(
+                    loading = false,
+                    errorMessage = StringResources.kentekenInvalid(),
+                )
                 return@launch
             }
             val entity = vehicleLicenseRepository.getCachedEntity(norm)
@@ -128,7 +232,8 @@ class VehicleDetailViewModel(
             if (detail == null) {
                 _state.value = VehicleDetailState(
                     loading = false,
-                    errorMessage = result.exceptionOrNull()?.message ?: "Kon voertuig niet laden",
+                    errorMessage = result.exceptionOrNull()?.message
+                        ?: StringResources.vehicleLoadFailed(),
                 )
                 return@launch
             }
@@ -136,7 +241,8 @@ class VehicleDetailViewModel(
             val detailChipped = vehicleLicenseRepository.isChipped(norm)
             val myChipped = myK?.let { vehicleLicenseRepository.isChipped(it) } ?: false
             val myInfo = resolveMyVehicleInfo(myK)
-            _state.value = VehicleDetailState(
+            val current = _state.value
+            _state.value = current.copy(
                 loading = false,
                 detail = detail,
                 my = myInfo,

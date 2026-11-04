@@ -14,7 +14,7 @@ import kotlinx.serialization.json.Json
 
 import nl.designlama.pakkiepakkie.utils.Logger
 
-private val appTokenHeaderRegex = Regex("(X-App-Token:\\s*)\\S+", RegexOption.IGNORE_CASE)
+private val appTokenHeaderRegex = Regex("(${Regex.escape(RdwApi.HEADER_APP_TOKEN)}:\\s*)\\S+", RegexOption.IGNORE_CASE)
 
 internal fun sanitizeRdwHttpLog(message: String): String =
     message.replace(appTokenHeaderRegex, "$1***")
@@ -35,7 +35,7 @@ internal fun HttpClientConfig<*>.configureRdwClient(
     defaultRequest {
         url(baseUrl)
         if (appToken.isNotEmpty()) {
-            header("X-App-Token", appToken)
+            header(RdwApi.HEADER_APP_TOKEN, appToken)
         }
     }
     if (debug) {

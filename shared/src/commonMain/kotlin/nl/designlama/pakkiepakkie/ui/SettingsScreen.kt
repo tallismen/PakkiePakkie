@@ -34,8 +34,15 @@ import nl.designlama.pakkiepakkie.domain.units.UnitPreset
 import nl.designlama.pakkiepakkie.domain.units.WeightUnit
 import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieTopBar
 import nl.designlama.pakkiepakkie.ui.components.PreviewContainer
-import org.jetbrains.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import pakkiepakkie.shared.generated.resources.Res
+import pakkiepakkie.shared.generated.resources.settings_preview
+import pakkiepakkie.shared.generated.resources.settings_section_power
+import pakkiepakkie.shared.generated.resources.settings_section_preset
+import pakkiepakkie.shared.generated.resources.settings_section_weight
+import pakkiepakkie.shared.generated.resources.settings_title
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,7 +72,7 @@ private fun SettingsContent(
         modifier = modifier.fillMaxSize(),
         topBar = {
             PakkiePakkieTopBar(
-                title = "Instellingen",
+                title = stringResource(Res.string.settings_title),
                 onBack = onBack,
             )
         },
@@ -85,14 +92,18 @@ private fun SettingsContent(
                 ),
             ) {
                 Text(
-                    text = "Voorbeeld: ${state.previewPower} · ${state.previewWeight}",
+                    text = stringResource(
+                        Res.string.settings_preview,
+                        state.previewPower,
+                        state.previewWeight,
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(16.dp),
                 )
             }
 
-            SettingsSection(title = "Preset") {
+            SettingsSection(title = stringResource(Res.string.settings_section_preset)) {
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -101,13 +112,13 @@ private fun SettingsContent(
                         FilterChip(
                             selected = state.preferences.preset == preset,
                             onClick = { onEvent(SettingsEvent.OnPresetSelected(preset)) },
-                            label = { Text(presetLabel(preset)) },
+                            label = { Text(unitPresetLabel(preset)) },
                         )
                     }
                 }
             }
 
-            SettingsSection(title = "Vermogen") {
+            SettingsSection(title = stringResource(Res.string.settings_section_power)) {
                 PowerUnit.entries.forEach { unit ->
                     UnitRadioRow(
                         label = powerUnitLabel(unit),
@@ -117,7 +128,7 @@ private fun SettingsContent(
                 }
             }
 
-            SettingsSection(title = "Gewicht") {
+            SettingsSection(title = stringResource(Res.string.settings_section_weight)) {
                 WeightUnit.entries.forEach { unit ->
                     UnitRadioRow(
                         label = weightUnitLabel(unit),
@@ -183,25 +194,6 @@ private fun UnitRadioRow(
     }
 }
 
-private fun presetLabel(preset: UnitPreset): String = when (preset) {
-    UnitPreset.Standaard -> "Standaard"
-    UnitPreset.Metric -> "Metric"
-    UnitPreset.Imperial -> "Imperial"
-    UnitPreset.PakkiePakkie -> "PakkiePakkie"
-}
-
-private fun powerUnitLabel(unit: PowerUnit): String = when (unit) {
-    PowerUnit.Kw -> "kW"
-    PowerUnit.Hp -> "HP"
-    PowerUnit.Pakkies -> "Pakkies"
-}
-
-private fun weightUnitLabel(unit: WeightUnit): String = when (unit) {
-    WeightUnit.Kg -> "kg"
-    WeightUnit.Lbs -> "lbs"
-    WeightUnit.Slippers -> "slippers"
-}
-
 @Composable
 private fun SettingsPreviewContent() {
     SettingsContent(
@@ -215,18 +207,10 @@ private fun SettingsPreviewContent() {
     )
 }
 
-@Preview
+@PreviewLightDark
 @Composable
-private fun SettingsScreenLightPreview() {
-    PreviewContainer(isDarkTheme = false) {
-        SettingsPreviewContent()
-    }
-}
-
-@Preview
-@Composable
-private fun SettingsScreenDarkPreview() {
-    PreviewContainer(isDarkTheme = true) {
+private fun SettingsScreenPreview() {
+    PreviewContainer {
         SettingsPreviewContent()
     }
 }

@@ -6,6 +6,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import nl.designlama.pakkiepakkie.resources.StringResources
 import nl.designlama.pakkiepakkie.ui.components.sanitizeLicensePlate
 import nl.designlama.pakkiepakkie.utils.AppConfig
 import org.koin.core.annotation.Single
@@ -25,25 +26,26 @@ class RdwOpenDataApi(
     suspend fun fetchByKenteken(rawInput: String): VehicleLicensePlateInfo {
         val norm = sanitizeLicensePlate(rawInput)
         if (norm.length != 6) {
-            throw IllegalArgumentException("Kenteken moet 6 tekens zijn")
+            throw IllegalArgumentException(StringResources.kentekenMustBeSixChars())
         }
 
         return coroutineScope {
             val mainDeferred = async {
-                httpClient.get("m9d7-ebf2.json") {
-                    parameter("kenteken", norm)
+                httpClient.get(RdwApi.DATASET_VEHICLE_MAIN) {
+                    parameter(RdwApi.PARAM_KENTEKEN, norm)
                 }.body<List<RdwVehicleMainDto>>()
             }
             val fuelDeferred = async {
                 runCatching {
-                    httpClient.get("8ys7-d773.json") {
-                        parameter("kenteken", norm)
+                    httpClient.get(RdwApi.DATASET_VEHICLE_FUEL) {
+                        parameter(RdwApi.PARAM_KENTEKEN, norm)
                     }.body<List<RdwVehicleFuelDto>>()
                 }.getOrElse { emptyList() }
             }
 
             val mainRows = mainDeferred.await()
-            val mainRow = mainRows.firstOrNull() ?: throw RdwNotFoundException(norm)
+            val mainRow = mainRows.firstOrNull()
+                ?: throw RdwNotFoundException(norm, StringResources.vehicleNotFound(norm))
             val fuelRows = fuelDeferred.await()
 
             val tgkDeferred = async {
@@ -52,10 +54,10 @@ class RdwOpenDataApi(
                     val v = mainRow.variant?.trim()?.takeIf { it.isNotEmpty() }
                     val u = mainRow.uitvoering?.trim()?.takeIf { it.isNotEmpty() }
                     if (tgk == null || v == null || u == null) return@runCatching emptyList()
-                    httpClient.get("7rjk-eycs.json") {
-                        parameter("typegoedkeuringsnummer", tgk)
-                        parameter("codevarianttgk", v)
-                        parameter("codeuitvoeringtgk", u)
+                    httpClient.get(RdwApi.DATASET_TGK_GEARBOX) {
+                        parameter(RdwApi.PARAM_TYPEGOEDKEURING, tgk)
+                        parameter(RdwApi.PARAM_VARIANT, v)
+                        parameter(RdwApi.PARAM_UITVOERING, u)
                     }.body<List<RdwTgkVersnellingDto>>()
                 }.getOrElse { emptyList() }
             }
