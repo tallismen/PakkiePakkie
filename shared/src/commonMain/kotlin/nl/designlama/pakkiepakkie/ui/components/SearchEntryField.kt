@@ -1,10 +1,12 @@
 package nl.designlama.pakkiepakkie.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -17,7 +19,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -33,19 +34,20 @@ fun SearchEntryField(
     compact: Boolean = false,
 ) {
     val shape = RoundedCornerShape(percent = 50)
-    val vertical = if (compact) 10.dp else 14.dp
+    val height = if (compact) 40.dp else 44.dp
     Surface(
         modifier = modifier
-            .shadow(elevation = if (compact) 2.dp else 4.dp, shape = shape)
+            .height(height)
             .clip(shape)
             .clickable(onClick = onClick),
         color = MaterialTheme.colorScheme.surface,
         shape = shape,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = vertical),
+                .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -53,12 +55,12 @@ fun SearchEntryField(
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = placeholder,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Medium,
+                fontWeight = FontWeight.Normal,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
@@ -77,7 +79,7 @@ fun FilterIconButton(
         modifier = modifier.size(44.dp),
         color = MaterialTheme.colorScheme.surface,
         shape = CircleShape,
-        shadowElevation = 2.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Box(
             modifier = Modifier.fillMaxWidth(),
@@ -103,7 +105,7 @@ fun CircularIconButton(
         modifier = modifier.size(40.dp),
         color = MaterialTheme.colorScheme.surface,
         shape = CircleShape,
-        shadowElevation = 2.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Box(
             modifier = Modifier.fillMaxWidth(),

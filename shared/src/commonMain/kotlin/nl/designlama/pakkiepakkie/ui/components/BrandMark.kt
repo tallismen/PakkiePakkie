@@ -56,7 +56,7 @@ fun UserAvatar(
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = label.take(2).uppercase(),
+            text = label.take(1).uppercase(),
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSecondaryContainer,

@@ -17,6 +17,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import nl.designlama.pakkiepakkie.theme.LicensePlateBlue
 import org.jetbrains.compose.resources.stringResource
 import pakkiepakkie.shared.generated.resources.Res
 import pakkiepakkie.shared.generated.resources.home_list_item_subtitle
@@ -48,9 +49,9 @@ fun VehicleListItem(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         PakkiePakkieGauge(
             percent = model.winPercent,
@@ -61,14 +62,16 @@ fun VehicleListItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = model.title,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = subtitle,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -102,9 +105,9 @@ fun VehicleListCard(
     PakkieCard(modifier = modifier) {
         Text(
             text = title,
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
         )
         visible.forEach { item ->
             VehicleListItem(
@@ -118,12 +121,15 @@ fun VehicleListCard(
                 onClick = { onExpandedChange(!expanded) },
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
-                    .padding(bottom = 4.dp),
+                    .padding(vertical = 4.dp),
             ) {
                 Text(
                     text = stringResource(
                         if (expanded) Res.string.home_show_less else Res.string.home_show_more,
                     ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = LicensePlateBlue,
                 )
             }
         }

@@ -34,7 +34,7 @@
     <string name="home_show_less">Toon minder</string>
     <string name="home_favorite_added">Toegevoegd aan favorieten</string>
     <string name="home_favorite_removed">Verwijderd uit favorieten</string>
-    <string name="home_profile_placeholder">PP</string>
+    <string name="home_profile_placeholder">P</string>
     <string name="home_vehicle_subtitle">%1$s · %2$s</string>
     <string name="home_list_item_subtitle">%1$s · %2$s</string>
     <string name="search_title">Zoeken</string>

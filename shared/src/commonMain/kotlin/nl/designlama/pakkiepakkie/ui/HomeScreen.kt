@@ -35,6 +35,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -44,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.collectLatest
 import nl.designlama.pakkiepakkie.data.local.VehicleLookupEntity
@@ -72,9 +75,11 @@ import pakkiepakkie.shared.generated.resources.home_vehicle_subtitle
 import kotlin.math.max
 import kotlin.math.min
 
-private val HeroMaxHeight = 236.dp
+private val HeroMaxHeight = 241.dp
 private const val SearchDockProgress = 0.75f
 private const val HeroMinScale = 0.25f
+private val HomeGradientTop = Color(0xFFF3F4F6)
+private val HomeGradientBottom = Color(0xFFE4E6EA)
 
 @Composable
 fun HomeScreen(
@@ -112,7 +117,7 @@ fun HomeScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets.safeDrawing,
     ) { padding ->
         HomeContent(
@@ -141,14 +146,16 @@ private fun HomeContent(
     val density = LocalDensity.current
     val collapseRangePx = with(density) { HeroMaxHeight.toPx() }
     var collapsePx by remember { mutableFloatStateOf(0f) }
-    val collapseProgress = if (state.hasMyVehicle) {
+    val canCollapse = state.hasMyVehicle
+    val collapseProgress = if (canCollapse) {
         (collapsePx / collapseRangePx).coerceIn(0f, 1f)
     } else {
-        1f
+        0f
     }
-    val searchInTopBar = !state.hasMyVehicle || collapseProgress >= SearchDockProgress
+    val searchInTopBar = canCollapse && collapseProgress >= SearchDockProgress
     val heroScale = max(HeroMinScale, 1f - collapseProgress * (1f - HeroMinScale))
     val heroVisible = state.hasMyVehicle && collapseProgress < 0.98f
+    val showFilter = state.recent.isNotEmpty() || state.favorites.isNotEmpty()
 
     val pages = buildList {
         if (state.recent.isNotEmpty()) add(HomePagerPage.Recent)
@@ -165,10 +172,10 @@ private fun HomeContent(
     listAtTop.value =
         activeListState.firstVisibleItemIndex == 0 && activeListState.firstVisibleItemScrollOffset == 0
 
-    val nestedScrollConnection = remember(collapseRangePx, state.hasMyVehicle) {
+    val nestedScrollConnection = remember(collapseRangePx, canCollapse) {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (!state.hasMyVehicle) return Offset.Zero
+                if (!canCollapse) return Offset.Zero
                 val delta = available.y
                 if (delta < 0f && collapsePx < collapseRangePx) {
                     val consumed = min(-delta, collapseRangePx - collapsePx)
@@ -183,7 +190,7 @@ private fun HomeContent(
                 available: Offset,
                 source: NestedScrollSource,
             ): Offset {
-                if (!state.hasMyVehicle) return Offset.Zero
+                if (!canCollapse) return Offset.Zero
                 val delta = available.y
                 if (delta > 0f && collapsePx > 0f && listAtTop.value) {
                     val consumedUp = min(delta, collapsePx)
@@ -194,7 +201,7 @@ private fun HomeContent(
             }
 
             override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-                if (!state.hasMyVehicle) return Velocity.Zero
+                if (!canCollapse) return Velocity.Zero
                 if (available.y > 0f && collapsePx > 0f && listAtTop.value) {
                     collapsePx = 0f
                     return Velocity(0f, available.y)
@@ -211,11 +218,17 @@ private fun HomeContent(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(HomeGradientTop, HomeGradientBottom),
+                ),
+            )
             .nestedScroll(nestedScrollConnection),
     ) {
         HomeTopBar(
+            hasMyVehicle = state.hasMyVehicle,
             searchInTopBar = searchInTopBar,
+            showFilter = showFilter,
             merk = state.myVehicleInfo?.merk,
             plate = state.myVehicleKenteken,
             onSearchClick = { onEvent(HomeEvent.OnSearchClick) },
@@ -241,23 +254,23 @@ private fun HomeContent(
 
         if (!searchInTopBar) {
             HomeSearchRow(
+                showFilter = showFilter,
                 onSearchClick = { onEvent(HomeEvent.OnSearchClick) },
                 onFilterClick = { onEvent(HomeEvent.OnFilterClick) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .padding(bottom = 12.dp),
+                    .padding(horizontal = 12.dp, vertical = 12.dp),
             )
         }
 
         if (!showLists) {
             Text(
                 text = stringResource(Res.string.home_empty_search_prompt),
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
-                    .padding(top = 24.dp),
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
             )
         } else {
             HorizontalPager(
@@ -265,7 +278,7 @@ private fun HomeContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                contentPadding = PaddingValues(horizontal = 16.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp),
                 pageSpacing = 12.dp,
             ) { pageIndex ->
                 val page = pages[pageIndex]
@@ -276,7 +289,7 @@ private fun HomeContent(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 16.dp),
+                    contentPadding = PaddingValues(bottom = 12.dp),
                 ) {
                     item(key = "card-$page") {
                         when (page) {
@@ -306,13 +319,13 @@ private fun HomeContent(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 12.dp),
+                        .padding(top = 0.dp, bottom = 12.dp),
                     horizontalArrangement = Arrangement.Center,
                 ) {
                     repeat(pages.size) { i ->
                         Box(
                             modifier = Modifier
-                                .padding(horizontal = 4.dp)
+                                .padding(horizontal = 3.dp)
                                 .size(8.dp)
                                 .clip(CircleShape)
                                 .background(
@@ -334,7 +347,9 @@ private enum class HomePagerPage { Recent, Favorites }
 
 @Composable
 private fun HomeTopBar(
+    hasMyVehicle: Boolean,
     searchInTopBar: Boolean,
+    showFilter: Boolean,
     merk: String?,
     plate: String?,
     onSearchClick: () -> Unit,
@@ -344,38 +359,58 @@ private fun HomeTopBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        BrandMark(merk = merk, size = 40.dp)
-        if (searchInTopBar) {
-            SearchEntryField(
-                onClick = onSearchClick,
-                compact = true,
-                modifier = Modifier.weight(1f),
-            )
-            FilterIconButton(onClick = onFilterClick)
-        } else {
-            Box(
-                modifier = Modifier.weight(1f),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (plate != null) {
-                    LicensePlateBadge(kenteken = plate, compact = true)
+        when {
+            !hasMyVehicle -> {
+                Spacer(modifier = Modifier.weight(1f))
+                UserAvatar(
+                    label = stringResource(Res.string.home_profile_placeholder),
+                    size = 40.dp,
+                    onClick = onProfileClick,
+                )
+            }
+            searchInTopBar -> {
+                BrandMark(merk = merk, size = 40.dp)
+                SearchEntryField(
+                    onClick = onSearchClick,
+                    compact = true,
+                    modifier = Modifier.weight(1f),
+                )
+                if (showFilter) {
+                    FilterIconButton(onClick = onFilterClick)
                 }
+                UserAvatar(
+                    label = stringResource(Res.string.home_profile_placeholder),
+                    size = 40.dp,
+                    onClick = onProfileClick,
+                )
+            }
+            else -> {
+                BrandMark(merk = merk, size = 40.dp)
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (plate != null) {
+                        LicensePlateBadge(kenteken = plate, compact = true)
+                    }
+                }
+                UserAvatar(
+                    label = stringResource(Res.string.home_profile_placeholder),
+                    size = 40.dp,
+                    onClick = onProfileClick,
+                )
             }
         }
-        UserAvatar(
-            label = stringResource(Res.string.home_profile_placeholder),
-            size = 40.dp,
-            onClick = onProfileClick,
-        )
     }
 }
 
 @Composable
 private fun HomeSearchRow(
+    showFilter: Boolean,
     onSearchClick: () -> Unit,
     onFilterClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -383,13 +418,15 @@ private fun HomeSearchRow(
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         SearchEntryField(
             onClick = onSearchClick,
             modifier = Modifier.weight(1f),
         )
-        FilterIconButton(onClick = onFilterClick)
+        if (showFilter) {
+            FilterIconButton(onClick = onFilterClick)
+        }
     }
 }
 
@@ -402,33 +439,41 @@ private fun HomeHero(
     val pk = myInfo.vermogenPk?.toInt()
         ?: myInfo.vermogenKw?.let { (it * 1.36).toInt() }
     Column(
-        modifier = modifier.padding(horizontal = 24.dp),
+        modifier = modifier.padding(horizontal = 16.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         PakkiePakkieGauge(
             percent = state.myVehicleAverageWinPercent,
-            sizeDp = 148f,
+            sizeDp = 126f,
             showLabel = false,
             subtitle = stringResource(Res.string.home_gauge_average),
+            percentTextStyle = MaterialTheme.typography.headlineMedium.copy(
+                fontSize = 32.sp,
+                fontWeight = FontWeight.SemiBold,
+            ),
             animationEnabled = true,
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         Text(
             text = "${myInfo.merk} ${myInfo.handelsbenaming}".trim(),
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.headlineSmall.copy(
+                fontSize = 24.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = (-0.48).sp,
+            ),
             color = MaterialTheme.colorScheme.onBackground,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = stringResource(
                 Res.string.home_vehicle_subtitle,
                 pk?.let { stringResource(Res.string.format_power_pk, it) } ?: "—",
                 "—",
             ),
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.titleMedium.copy(fontSize = 20.sp),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -443,26 +488,41 @@ private fun PreviewContent() {
             recent = listOf(
                 previewEntity("PL700K", "VOLVO", "V40", 149.6),
                 previewEntity("56ZKD3", "OPEL", "Corsa", 90.0),
+                previewEntity("34XYZ7", "VOLKSWAGEN", "Golf 1.0 TSI", 237.0),
+                previewEntity("78DFW9", "VOLKSWAGEN", "Golf GTI", 105.0),
+                previewEntity("9BHQ34", "BMW", "M3 Competition", 245.0),
+                previewEntity("12ABC3", "OPEL", "Corsa 1.0", 98.0),
             ),
-            myVehicleKenteken = "PL700K",
+            myVehicleKenteken = "HDJ70K",
             myVehicleInfo = VehicleLicensePlateInfo(
-                kenteken = "PL700K",
-                merk = "VOLVO",
-                handelsbenaming = "V40",
+                kenteken = "HDJ70K",
+                merk = "BMW",
+                handelsbenaming = "1er Reihe",
                 massaRijklaarKg = 1420,
                 massaLedigKg = 1300,
                 cilinderinhoudCc = 1596,
                 vermogenMassaRijklaar = 0.08,
-                vermogenKw = 110.0,
+                vermogenKw = 98.5,
                 brandstofOmschrijvingen = listOf("Benzine"),
                 hybridKlasse = null,
                 versnellingsbakCode = "M",
                 aantalVersnellingen = 6,
                 maximaleConstructiesnelheidKmh = 210,
             ),
-            recentWinPercent = mapOf("PL700K" to 55f, "56ZKD3" to 25f),
-            favoriteKentekens = setOf("56ZKD3"),
-            myVehicleAverageWinPercent = 55f,
+            recentWinPercent = mapOf(
+                "PL700K" to 55f,
+                "56ZKD3" to 25f,
+                "34XYZ7" to 55f,
+                "78DFW9" to 55f,
+                "9BHQ34" to 75f,
+                "12ABC3" to 25f,
+            ),
+            favorites = listOf(
+                previewEntity("34XYZ7", "VOLKSWAGEN", "Golf 1.0 TSI", 237.0),
+            ),
+            favoriteKentekens = setOf("34XYZ7"),
+            favoriteWinPercent = mapOf("34XYZ7" to 55f),
+            myVehicleAverageWinPercent = 25f,
         ),
         onEvent = {},
         listModels = { entities, winMap ->
@@ -472,7 +532,7 @@ private fun PreviewContent() {
                     title = "${it.merk} ${it.handelsbenaming}",
                     powerPk = it.vermogenPk?.toInt(),
                     winPercent = winMap[it.kenteken],
-                    isFavorite = it.kenteken == "56ZKD3",
+                    isFavorite = it.kenteken == "34XYZ7",
                 )
             }
         },
