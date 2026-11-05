@@ -42,6 +42,13 @@ object RdwNumberParser {
         val s = raw?.trim()?.replace(',', '.')?.takeIf { it.isNotEmpty() } ?: return null
         return s.toDoubleOrNull()
     }
+
+    /** Parses RDW `datum_eerste_toelating` (`YYYYMMDD` or `YYYY-MM-DD`) to year. */
+    fun parseBouwjaar(raw: String?): Int? {
+        val digits = raw?.filter { it.isDigit() }.orEmpty()
+        if (digits.length < 4) return null
+        return digits.take(4).toIntOrNull()?.takeIf { it in 1900..2100 }
+    }
 }
 
 data class VehicleLicensePlateInfo(
@@ -62,6 +69,8 @@ data class VehicleLicensePlateInfo(
     val aantalVersnellingen: Int?,
     /** RDW maximale constructiesnelheid (km/h). */
     val maximaleConstructiesnelheidKmh: Int?,
+    /** Year of first registration from RDW `datum_eerste_toelating`. */
+    val bouwjaar: Int? = null,
 ) {
     val vermogenPk: Double?
         get() = vermogenKw?.times(1.36)

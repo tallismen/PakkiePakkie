@@ -1,6 +1,7 @@
 package nl.designlama.pakkiepakkie.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -22,6 +23,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import nl.designlama.pakkiepakkie.theme.LicensePlateBlue
+import nl.designlama.pakkiepakkie.theme.White
 import org.jetbrains.compose.resources.stringResource
 import pakkiepakkie.shared.generated.resources.Res
 import pakkiepakkie.shared.generated.resources.home_search_placeholder
@@ -73,23 +76,43 @@ fun SearchEntryField(
 fun FilterIconButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    badgeCount: Int = 0,
 ) {
-    Surface(
-        onClick = onClick,
-        modifier = modifier.size(44.dp),
-        color = MaterialTheme.colorScheme.surface,
-        shape = CircleShape,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-    ) {
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center,
+    Box(modifier = modifier.size(44.dp)) {
+        Surface(
+            onClick = onClick,
+            modifier = Modifier.size(44.dp),
+            color = MaterialTheme.colorScheme.surface,
+            shape = CircleShape,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         ) {
-            Text(
-                text = UiSymbols.FILTER,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = UiSymbols.FILTER,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        if (badgeCount > 0) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(18.dp)
+                    .clip(CircleShape)
+                    .background(LicensePlateBlue),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = badgeCount.coerceAtMost(9).toString(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = White,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
         }
     }
 }

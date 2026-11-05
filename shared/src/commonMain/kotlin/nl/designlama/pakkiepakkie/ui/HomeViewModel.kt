@@ -34,9 +34,20 @@ data class HomeState(
     val favoriteWinPercent: Map<String, Float?> = emptyMap(),
     /** Average win chance of my vehicle vs other recently viewed plates. */
     val myVehicleAverageWinPercent: Float? = null,
+    val filter: HomeFilter = HomeFilter(),
+    val filterSheetVisible: Boolean = false,
     val snackbarMessage: String? = null,
 ) : UIState {
     val hasMyVehicle: Boolean get() = myVehicleInfo != null
+
+    val filteredRecent: List<VehicleLookupEntity>
+        get() = applyHomeFilter(recent, recentWinPercent, filter)
+
+    val filteredFavorites: List<VehicleLookupEntity>
+        get() = applyHomeFilter(favorites, favoriteWinPercent, filter)
+
+    val filterResultCount: Int
+        get() = filteredRecent.size + filteredFavorites.size
 }
 
 sealed interface HomeEvent : UIEvent {
@@ -44,6 +55,8 @@ sealed interface HomeEvent : UIEvent {
     data class OnFavoriteClick(val kenteken: String) : HomeEvent
     data object OnSearchClick : HomeEvent
     data object OnFilterClick : HomeEvent
+    data object OnFilterDismiss : HomeEvent
+    data class OnFilterApply(val filter: HomeFilter) : HomeEvent
     data object OnProfileClick : HomeEvent
     data object OnSnackbarDismissed : HomeEvent
 }
@@ -109,9 +122,16 @@ class HomeViewModel(
             title = "${row.merk} ${row.handelsbenaming}".trim(),
             powerPk = row.vermogenPk?.toInt()
                 ?: row.vermogenKw?.let { (it * 1.36).toInt() },
+            bouwjaar = row.bouwjaar,
             winPercent = winMap[row.kenteken],
             isFavorite = favorites.contains(sanitizeLicensePlate(row.kenteken)),
         )
+    }
+
+    fun previewResultCount(filter: HomeFilter): Int {
+        val s = _state.value
+        return applyHomeFilter(s.recent, s.recentWinPercent, filter).size +
+            applyHomeFilter(s.favorites, s.favoriteWinPercent, filter).size
     }
 
     private suspend fun resolveFavoriteEntities(
@@ -191,8 +211,18 @@ class HomeViewModel(
                     )
                 }
             }
-            HomeEvent.OnSearchClick, HomeEvent.OnFilterClick -> {
-                navigate(HomeDirections.OpenSearch)
+            HomeEvent.OnSearchClick -> navigate(HomeDirections.OpenSearch)
+            HomeEvent.OnFilterClick -> {
+                _state.value = _state.value.copy(filterSheetVisible = true)
+            }
+            HomeEvent.OnFilterDismiss -> {
+                _state.value = _state.value.copy(filterSheetVisible = false)
+            }
+            is HomeEvent.OnFilterApply -> {
+                _state.value = _state.value.copy(
+                    filter = event.filter,
+                    filterSheetVisible = false,
+                )
             }
             HomeEvent.OnProfileClick -> navigate(HomeDirections.OpenProfile)
             HomeEvent.OnSnackbarDismissed -> {

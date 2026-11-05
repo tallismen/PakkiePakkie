@@ -21,6 +21,8 @@ data class RdwVehicleMainDto(
     @SerialName("volgnummer_wijziging_eu_typegoedkeuring") val volgnummerWijzigingEuTypegoedkeuring: String? = null,
     @SerialName("maximale_constructiesnelheid") val maximaleConstructiesnelheid: String? = null,
     @SerialName("opgegeven_maximum_snelheid") val opgegevenMaximumSnelheid: String? = null,
+    /** RDW first registration date, typically `YYYYMMDD`. */
+    @SerialName("datum_eerste_toelating") val datumEersteToelating: String? = null,
 )
 
 @OptIn(ExperimentalSerializationApi::class)

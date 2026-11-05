@@ -1,5 +1,6 @@
 package nl.designlama.pakkiepakkie.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -11,9 +12,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
+import pakkiepakkie.shared.generated.resources.Res
+import pakkiepakkie.shared.generated.resources.home_profile_placeholder
+import pakkiepakkie.shared.generated.resources.profile_avatar
 
 @Composable
 fun BrandMark(
@@ -42,9 +50,10 @@ fun BrandMark(
 
 @Composable
 fun UserAvatar(
-    label: String,
+    label: String = stringResource(Res.string.home_profile_placeholder),
     modifier: Modifier = Modifier,
     size: Dp = 36.dp,
+    image: DrawableResource = Res.drawable.profile_avatar,
     onClick: (() -> Unit)? = null,
 ) {
     Box(
@@ -55,11 +64,11 @@ fun UserAvatar(
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = label.take(1).uppercase(),
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
+        Image(
+            painter = painterResource(image),
+            contentDescription = label,
+            modifier = Modifier.size(size),
+            contentScale = ContentScale.Crop,
         )
     }
 }

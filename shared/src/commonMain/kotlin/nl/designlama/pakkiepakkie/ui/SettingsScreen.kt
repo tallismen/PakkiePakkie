@@ -66,7 +66,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import pakkiepakkie.shared.generated.resources.Res
 import pakkiepakkie.shared.generated.resources.app_logo
 import pakkiepakkie.shared.generated.resources.format_power_pk
-import pakkiepakkie.shared.generated.resources.home_list_item_subtitle
+import pakkiepakkie.shared.generated.resources.home_list_item_subtitle_no_year
 import pakkiepakkie.shared.generated.resources.profile_delete_vehicle
 import pakkiepakkie.shared.generated.resources.profile_label_chipped
 import pakkiepakkie.shared.generated.resources.profile_label_mileage
@@ -191,7 +191,7 @@ private fun VehicleProfileCard(
             val pk = info.vermogenPk?.toInt()
             Text(
                 text = stringResource(
-                    Res.string.home_list_item_subtitle,
+                    Res.string.home_list_item_subtitle_no_year,
                     formatLicensePlate(info.kenteken),
                     pk?.let { stringResource(Res.string.format_power_pk, it) } ?: "—",
                 ),

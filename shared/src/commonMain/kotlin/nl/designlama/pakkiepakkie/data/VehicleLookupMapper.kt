@@ -33,6 +33,7 @@ fun VehicleLookupEntity.toVehicleLicensePlateInfo(): VehicleLicensePlateInfo =
         versnellingsbakCode = versnellingsbakCode,
         aantalVersnellingen = aantalVersnellingen,
         maximaleConstructiesnelheidKmh = maximaleConstructiesnelheidKmh,
+        bouwjaar = bouwjaar,
     )
 
 fun VehicleLicensePlateInfo.toVehicleLookupEntity(
@@ -57,6 +58,7 @@ fun VehicleLicensePlateInfo.toVehicleLookupEntity(
         versnellingsbakCode = versnellingsbakCode,
         aantalVersnellingen = aantalVersnellingen,
         maximaleConstructiesnelheidKmh = maximaleConstructiesnelheidKmh,
+        bouwjaar = bouwjaar,
         isChipped = isChipped,
         dataVersion = dataVersion,
         lastViewedAt = lastViewedAt,

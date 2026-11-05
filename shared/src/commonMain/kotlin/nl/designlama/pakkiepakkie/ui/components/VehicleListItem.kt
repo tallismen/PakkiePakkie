@@ -20,15 +20,17 @@ import androidx.compose.ui.unit.dp
 import nl.designlama.pakkiepakkie.theme.LicensePlateBlue
 import org.jetbrains.compose.resources.stringResource
 import pakkiepakkie.shared.generated.resources.Res
+import pakkiepakkie.shared.generated.resources.format_power_pk
 import pakkiepakkie.shared.generated.resources.home_list_item_subtitle
+import pakkiepakkie.shared.generated.resources.home_list_item_subtitle_no_year
 import pakkiepakkie.shared.generated.resources.home_show_less
 import pakkiepakkie.shared.generated.resources.home_show_more
-import pakkiepakkie.shared.generated.resources.format_power_pk
 
 data class VehicleListItemModel(
     val kenteken: String,
     val title: String,
     val powerPk: Int?,
+    val bouwjaar: Int? = null,
     val winPercent: Float?,
     val isFavorite: Boolean,
 )
@@ -40,11 +42,21 @@ fun VehicleListItem(
     onFavoriteClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val subtitle = stringResource(
-        Res.string.home_list_item_subtitle,
-        formatLicensePlate(model.kenteken),
-        model.powerPk?.let { stringResource(Res.string.format_power_pk, it) } ?: "—",
-    )
+    val power = model.powerPk?.let { stringResource(Res.string.format_power_pk, it) } ?: "—"
+    val subtitle = if (model.bouwjaar != null) {
+        stringResource(
+            Res.string.home_list_item_subtitle,
+            formatLicensePlate(model.kenteken),
+            power,
+            model.bouwjaar.toString(),
+        )
+    } else {
+        stringResource(
+            Res.string.home_list_item_subtitle_no_year,
+            formatLicensePlate(model.kenteken),
+            power,
+        )
+    }
     Row(
         modifier = modifier
             .fillMaxWidth()

@@ -97,6 +97,7 @@ class RdwOpenDataApi(
                 versnellingsbakCode = versnellingsbakCode,
                 aantalVersnellingen = aantalVersnellingen,
                 maximaleConstructiesnelheidKmh = maxSpeedKmh,
+                bouwjaar = RdwNumberParser.parseBouwjaar(mainRow.datumEersteToelating),
             )
         }
     }

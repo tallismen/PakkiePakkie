@@ -17,6 +17,7 @@ data class VehicleLookupEntity(
     val versnellingsbakCode: String?,
     val aantalVersnellingen: Int?,
     val maximaleConstructiesnelheidKmh: Int?,
+    val bouwjaar: Int? = null,
     val isChipped: Boolean = false,
     val dataVersion: Int = VehicleLookupDataVersion.LEGACY,
     val lastViewedAt: Long,

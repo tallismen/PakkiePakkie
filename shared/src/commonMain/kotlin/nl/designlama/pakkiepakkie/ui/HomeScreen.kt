@@ -53,6 +53,7 @@ import nl.designlama.pakkiepakkie.data.local.VehicleLookupEntity
 import nl.designlama.pakkiepakkie.network.rdw.VehicleLicensePlateInfo
 import nl.designlama.pakkiepakkie.ui.components.BrandMark
 import nl.designlama.pakkiepakkie.ui.components.FilterIconButton
+import nl.designlama.pakkiepakkie.ui.components.HomeFilterSheet
 import nl.designlama.pakkiepakkie.ui.components.LicensePlateBadge
 import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieGauge
 import nl.designlama.pakkiepakkie.ui.components.PreviewContainer
@@ -68,7 +69,6 @@ import pakkiepakkie.shared.generated.resources.home_empty_search_prompt
 import pakkiepakkie.shared.generated.resources.home_favorite_added
 import pakkiepakkie.shared.generated.resources.home_favorite_removed
 import pakkiepakkie.shared.generated.resources.home_gauge_average
-import pakkiepakkie.shared.generated.resources.home_profile_placeholder
 import pakkiepakkie.shared.generated.resources.home_section_favorites
 import pakkiepakkie.shared.generated.resources.home_section_recent
 import pakkiepakkie.shared.generated.resources.home_vehicle_subtitle
@@ -114,6 +114,15 @@ fun HomeScreen(
         }
     }
 
+    if (state.filterSheetVisible) {
+        HomeFilterSheet(
+            initial = state.filter,
+            resultCountFor = viewModel::previewResultCount,
+            onApply = { viewModel.onEvent(HomeEvent.OnFilterApply(it)) },
+            onDismiss = { viewModel.onEvent(HomeEvent.OnFilterDismiss) },
+        )
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -155,11 +164,14 @@ private fun HomeContent(
     val searchInTopBar = canCollapse && collapseProgress >= SearchDockProgress
     val heroScale = max(HeroMinScale, 1f - collapseProgress * (1f - HeroMinScale))
     val heroVisible = state.hasMyVehicle && collapseProgress < 0.98f
-    val showFilter = state.recent.isNotEmpty() || state.favorites.isNotEmpty()
+    val showFilter =
+        state.recent.isNotEmpty() || state.favorites.isNotEmpty() || state.filter.isActive
 
+    val filteredRecent = state.filteredRecent
+    val filteredFavorites = state.filteredFavorites
     val pages = buildList {
-        if (state.recent.isNotEmpty()) add(HomePagerPage.Recent)
-        if (state.favorites.isNotEmpty()) add(HomePagerPage.Favorites)
+        if (filteredRecent.isNotEmpty()) add(HomePagerPage.Recent)
+        if (filteredFavorites.isNotEmpty()) add(HomePagerPage.Favorites)
     }
     val pagerState = rememberPagerState(pageCount = { pages.size.coerceAtLeast(1) })
     val recentListState = rememberLazyListState()
@@ -229,6 +241,7 @@ private fun HomeContent(
             hasMyVehicle = state.hasMyVehicle,
             searchInTopBar = searchInTopBar,
             showFilter = showFilter,
+            filterBadgeCount = state.filter.activeCount,
             merk = state.myVehicleInfo?.merk,
             plate = state.myVehicleKenteken,
             onSearchClick = { onEvent(HomeEvent.OnSearchClick) },
@@ -255,6 +268,7 @@ private fun HomeContent(
         if (!searchInTopBar) {
             HomeSearchRow(
                 showFilter = showFilter,
+                filterBadgeCount = state.filter.activeCount,
                 onSearchClick = { onEvent(HomeEvent.OnSearchClick) },
                 onFilterClick = { onEvent(HomeEvent.OnFilterClick) },
                 modifier = Modifier
@@ -295,7 +309,7 @@ private fun HomeContent(
                         when (page) {
                             HomePagerPage.Recent -> VehicleListCard(
                                 title = stringResource(Res.string.home_section_recent),
-                                items = listModels(state.recent, state.recentWinPercent),
+                                items = listModels(filteredRecent, state.recentWinPercent),
                                 expanded = recentExpanded,
                                 onExpandedChange = { recentExpanded = it },
                                 onItemClick = { onEvent(HomeEvent.OnRowClick(it)) },
@@ -304,7 +318,7 @@ private fun HomeContent(
                             )
                             HomePagerPage.Favorites -> VehicleListCard(
                                 title = stringResource(Res.string.home_section_favorites),
-                                items = listModels(state.favorites, state.favoriteWinPercent),
+                                items = listModels(filteredFavorites, state.favoriteWinPercent),
                                 expanded = favoritesExpanded,
                                 onExpandedChange = { favoritesExpanded = it },
                                 onItemClick = { onEvent(HomeEvent.OnRowClick(it)) },
@@ -350,6 +364,7 @@ private fun HomeTopBar(
     hasMyVehicle: Boolean,
     searchInTopBar: Boolean,
     showFilter: Boolean,
+    filterBadgeCount: Int,
     merk: String?,
     plate: String?,
     onSearchClick: () -> Unit,
@@ -367,7 +382,6 @@ private fun HomeTopBar(
             !hasMyVehicle -> {
                 Spacer(modifier = Modifier.weight(1f))
                 UserAvatar(
-                    label = stringResource(Res.string.home_profile_placeholder),
                     size = 40.dp,
                     onClick = onProfileClick,
                 )
@@ -380,10 +394,12 @@ private fun HomeTopBar(
                     modifier = Modifier.weight(1f),
                 )
                 if (showFilter) {
-                    FilterIconButton(onClick = onFilterClick)
+                    FilterIconButton(
+                        onClick = onFilterClick,
+                        badgeCount = filterBadgeCount,
+                    )
                 }
                 UserAvatar(
-                    label = stringResource(Res.string.home_profile_placeholder),
                     size = 40.dp,
                     onClick = onProfileClick,
                 )
@@ -399,7 +415,6 @@ private fun HomeTopBar(
                     }
                 }
                 UserAvatar(
-                    label = stringResource(Res.string.home_profile_placeholder),
                     size = 40.dp,
                     onClick = onProfileClick,
                 )
@@ -411,6 +426,7 @@ private fun HomeTopBar(
 @Composable
 private fun HomeSearchRow(
     showFilter: Boolean,
+    filterBadgeCount: Int,
     onSearchClick: () -> Unit,
     onFilterClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -425,7 +441,10 @@ private fun HomeSearchRow(
             modifier = Modifier.weight(1f),
         )
         if (showFilter) {
-            FilterIconButton(onClick = onFilterClick)
+            FilterIconButton(
+                onClick = onFilterClick,
+                badgeCount = filterBadgeCount,
+            )
         }
     }
 }
@@ -471,7 +490,7 @@ private fun HomeHero(
             text = stringResource(
                 Res.string.home_vehicle_subtitle,
                 pk?.let { stringResource(Res.string.format_power_pk, it) } ?: "—",
-                "—",
+                myInfo.bouwjaar?.toString() ?: "—",
             ),
             style = MaterialTheme.typography.titleMedium.copy(fontSize = 20.sp),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -508,6 +527,7 @@ private fun PreviewContent() {
                 versnellingsbakCode = "M",
                 aantalVersnellingen = 6,
                 maximaleConstructiesnelheidKmh = 210,
+                bouwjaar = 2015,
             ),
             recentWinPercent = mapOf(
                 "PL700K" to 55f,
@@ -518,7 +538,7 @@ private fun PreviewContent() {
                 "12ABC3" to 25f,
             ),
             favorites = listOf(
-                previewEntity("34XYZ7", "VOLKSWAGEN", "Golf 1.0 TSI", 237.0),
+                previewEntity("34XYZ7", "VOLKSWAGEN", "Golf 1.0 TSI", 237.0, 2016),
             ),
             favoriteKentekens = setOf("34XYZ7"),
             favoriteWinPercent = mapOf("34XYZ7" to 55f),
@@ -531,6 +551,7 @@ private fun PreviewContent() {
                     kenteken = it.kenteken,
                     title = "${it.merk} ${it.handelsbenaming}",
                     powerPk = it.vermogenPk?.toInt(),
+                    bouwjaar = it.bouwjaar,
                     winPercent = winMap[it.kenteken],
                     isFavorite = it.kenteken == "34XYZ7",
                 )
@@ -544,6 +565,7 @@ private fun previewEntity(
     merk: String,
     name: String,
     pk: Double,
+    year: Int = 2016,
 ): VehicleLookupEntity = VehicleLookupEntity(
     kenteken = kenteken,
     merk = merk,
@@ -563,6 +585,7 @@ private fun previewEntity(
     lastViewedAt = 0L,
     lastFetchedAt = 0L,
     maximaleConstructiesnelheidKmh = 210,
+    bouwjaar = year,
     isChipped = false,
 )
 
