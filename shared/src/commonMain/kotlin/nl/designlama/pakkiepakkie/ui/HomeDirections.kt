@@ -4,5 +4,6 @@ import nl.designlama.pakkiepakkie.base.UIDirections
 
 sealed interface HomeDirections : UIDirections {
     data class OpenVehicleDetail(val kenteken: String) : HomeDirections
-    data object OpenSettings : HomeDirections
+    data object OpenSearch : HomeDirections
+    data object OpenProfile : HomeDirections
 }

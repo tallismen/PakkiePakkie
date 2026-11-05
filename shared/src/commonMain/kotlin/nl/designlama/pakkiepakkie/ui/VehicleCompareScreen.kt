@@ -1,8 +1,9 @@
 package nl.designlama.pakkiepakkie.ui
 
 import androidx.compose.animation.animateContentSize
-import nl.designlama.pakkiepakkie.ui.components.PakkieAnimations
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,80 +13,95 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.collectLatest
+import nl.designlama.pakkiepakkie.datastore.TireType
 import nl.designlama.pakkiepakkie.datastore.UnitPreferencesRepository
+import nl.designlama.pakkiepakkie.datastore.UserVehicleProfile
 import nl.designlama.pakkiepakkie.domain.units.UnitPreferences
 import nl.designlama.pakkiepakkie.domain.units.UnitSymbols
 import nl.designlama.pakkiepakkie.domain.units.VehicleDisplayFormatter
-import nl.designlama.pakkiepakkie.network.chipped.ChippedTuneCalculator
 import nl.designlama.pakkiepakkie.network.chipped.ChippedTuneEstimate
 import nl.designlama.pakkiepakkie.network.rdw.PakkiePakkieCalculator
 import nl.designlama.pakkiepakkie.network.rdw.RdwTransmissionCodes
 import nl.designlama.pakkiepakkie.network.rdw.VehicleLicensePlateInfo
-import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieGauge
+import nl.designlama.pakkiepakkie.ui.components.CircularIconButton
+import nl.designlama.pakkiepakkie.ui.components.CompareBarTone
+import nl.designlama.pakkiepakkie.ui.components.CompareOutcome
+import nl.designlama.pakkiepakkie.ui.components.CompareStatRow
+import nl.designlama.pakkiepakkie.ui.components.LicensePlateBadge
+import nl.designlama.pakkiepakkie.ui.components.PakkieAnimations
 import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieText
-import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieTopBar
 import nl.designlama.pakkiepakkie.ui.components.PreviewContainer
-import nl.designlama.pakkiepakkie.ui.components.ChippedKentekenTitle
-import nl.designlama.pakkiepakkie.ui.components.ChippedVehicleCard
 import nl.designlama.pakkiepakkie.ui.components.ReviewEditorSheet
-import nl.designlama.pakkiepakkie.ui.components.ReviewListItem
-import nl.designlama.pakkiepakkie.ui.components.StarRating
-import androidx.compose.ui.tooling.preview.PreviewLightDark
+import nl.designlama.pakkiepakkie.ui.components.UiSymbols
+import nl.designlama.pakkiepakkie.ui.components.UserAvatar
+import nl.designlama.pakkiepakkie.ui.components.compareBooleanOutcome
+import nl.designlama.pakkiepakkie.ui.components.compareNumericOutcome
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import pakkiepakkie.shared.generated.resources.Res
-import pakkiepakkie.shared.generated.resources.action_clear_my_vehicle
 import pakkiepakkie.shared.generated.resources.action_close
-import pakkiepakkie.shared.generated.resources.action_done
-import pakkiepakkie.shared.generated.resources.action_edit_review
 import pakkiepakkie.shared.generated.resources.action_set_my_vehicle
-import pakkiepakkie.shared.generated.resources.action_write_review
-import pakkiepakkie.shared.generated.resources.compare_caption_this_short
-import pakkiepakkie.shared.generated.resources.compare_caption_this_vehicle
-import pakkiepakkie.shared.generated.resources.compare_caption_your_short
-import pakkiepakkie.shared.generated.resources.compare_caption_your_vehicle
-import pakkiepakkie.shared.generated.resources.compare_label_fuel
-import pakkiepakkie.shared.generated.resources.compare_label_pk_per_kg
-import pakkiepakkie.shared.generated.resources.compare_label_power_stage1
+import pakkiepakkie.shared.generated.resources.compare_label_chipped
+import pakkiepakkie.shared.generated.resources.compare_label_curb_weight
+import pakkiepakkie.shared.generated.resources.compare_label_empty_weight
+import pakkiepakkie.shared.generated.resources.compare_label_modded_exhaust
+import pakkiepakkie.shared.generated.resources.compare_label_nitrous
+import pakkiepakkie.shared.generated.resources.compare_label_power
+import pakkiepakkie.shared.generated.resources.compare_label_tires
 import pakkiepakkie.shared.generated.resources.compare_label_top_speed
-import pakkiepakkie.shared.generated.resources.compare_label_transmission
-import pakkiepakkie.shared.generated.resources.compare_power_estimated_suffix
 import pakkiepakkie.shared.generated.resources.compare_set_my_car_hint
-import pakkiepakkie.shared.generated.resources.compare_win_chance_disclaimer
-import pakkiepakkie.shared.generated.resources.compare_win_chance_title
-import pakkiepakkie.shared.generated.resources.review_average_summary
-import pakkiepakkie.shared.generated.resources.review_count_one
-import pakkiepakkie.shared.generated.resources.review_count_other
-import pakkiepakkie.shared.generated.resources.reviews_empty
-import pakkiepakkie.shared.generated.resources.reviews_section_title
+import pakkiepakkie.shared.generated.resources.compare_them_username
+import pakkiepakkie.shared.generated.resources.compare_value_chipped_no
+import pakkiepakkie.shared.generated.resources.compare_value_chipped_yes
+import pakkiepakkie.shared.generated.resources.compare_value_exhaust_no
+import pakkiepakkie.shared.generated.resources.compare_value_exhaust_yes
+import pakkiepakkie.shared.generated.resources.compare_value_nitrous_no
+import pakkiepakkie.shared.generated.resources.compare_value_nitrous_yes
+import pakkiepakkie.shared.generated.resources.compare_you_username
+import pakkiepakkie.shared.generated.resources.format_power_pk
+import pakkiepakkie.shared.generated.resources.home_favorite_added
+import pakkiepakkie.shared.generated.resources.home_favorite_removed
+import pakkiepakkie.shared.generated.resources.profile_tires_allseason
+import pakkiepakkie.shared.generated.resources.profile_tires_summer
+import pakkiepakkie.shared.generated.resources.profile_tires_winter
 import pakkiepakkie.shared.generated.resources.transmission_automatic
 import pakkiepakkie.shared.generated.resources.transmission_cvt
 import pakkiepakkie.shared.generated.resources.transmission_dct
 import pakkiepakkie.shared.generated.resources.transmission_manual
 import pakkiepakkie.shared.generated.resources.unit_speed_kmh
+
+private val BattleCardShape = RoundedCornerShape(28.dp)
+private val BattleCardPadding = 16.dp
 
 @Composable
 internal fun versnellingsbakDisplayNl(code: String?): String = when (code?.trim()?.uppercase()) {
@@ -96,8 +112,6 @@ internal fun versnellingsbakDisplayNl(code: String?): String = when (code?.trim(
     null, "" -> UnitSymbols.EM_DASH
     else -> code.trim()
 }
-
-private enum class CompareTrend { DetailBetter, DetailWorse, Neutral }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -112,11 +126,27 @@ fun VehicleCompareScreen(
         .preferencesFlow
         .collectAsStateWithLifecycle(initialValue = UnitPreferences())
     val displayFormatter = koinInject<VehicleDisplayFormatter>()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val favoriteAdded = stringResource(Res.string.home_favorite_added)
+    val favoriteRemoved = stringResource(Res.string.home_favorite_removed)
+
+    LaunchedEffect(viewModel) {
+        viewModel.snackbar.collectLatest { key ->
+            val message = when (key) {
+                HomeViewModel.SNACKBAR_ADDED -> favoriteAdded
+                HomeViewModel.SNACKBAR_REMOVED -> favoriteRemoved
+                else -> key
+            }
+            snackbarHostState.showSnackbar(message)
+        }
+    }
+
     VehicleCompareScaffold(
         kenteken = kenteken,
         state = state,
         unitPreferences = unitPreferences,
         displayFormatter = displayFormatter,
+        snackbarHostState = snackbarHostState,
         onBack = onBack,
         onEvent = viewModel::onEvent,
         modifier = modifier,
@@ -144,67 +174,73 @@ private fun VehicleCompareScaffold(
     state: VehicleDetailState,
     unitPreferences: UnitPreferences,
     displayFormatter: VehicleDisplayFormatter,
+    snackbarHostState: SnackbarHostState,
     onBack: () -> Unit,
     onEvent: (VehicleDetailEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val scroll = rememberScrollState()
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        contentWindowInsets = WindowInsets.safeDrawing,
-        topBar = {
-            PakkiePakkieTopBar(
-                titleContent = {
-                    ChippedKentekenTitle(
-                        kenteken = kenteken,
-                        isChipped = state.detailIsChipped,
-                    )
-                },
-                onBack = onBack,
-            )
-        },
-    ) { paddingValues ->
-        when {
-            state.loading -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    CircularProgressIndicator()
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.background,
+    ) { _ ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(horizontal = BattleCardPadding, vertical = BattleCardPadding),
+        ) {
+            when {
+                state.loading -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
                 }
-            }
 
-            state.errorMessage != null -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    PakkiePakkieText(text = state.errorMessage.orEmpty(), textColor = MaterialTheme.colorScheme.error)
-                    Spacer(Modifier.height(16.dp))
-                    Button(onClick = onBack) { Text(stringResource(Res.string.action_close)) }
+                state.errorMessage != null -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        PakkiePakkieText(
+                            text = state.errorMessage.orEmpty(),
+                            textColor = MaterialTheme.colorScheme.error,
+                        )
+                        Spacer(modifier.height(16.dp))
+                        Button(onClick = onBack) { Text(stringResource(Res.string.action_close)) }
+                    }
                 }
-            }
 
-            state.detail != null -> {
-                VehicleCompareContent(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    detail = state.detail!!,
-                    state = state,
-                    unitPreferences = unitPreferences,
-                    displayFormatter = displayFormatter,
-                    onEvent = onEvent,
-                    onBack = onBack,
-                )
+                state.detail != null -> {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        shape = BattleCardShape,
+                        color = MaterialTheme.colorScheme.surface,
+                        shadowElevation = 8.dp,
+                        tonalElevation = 0.dp,
+                    ) {
+                        VehicleCompareContent(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .verticalScroll(scroll)
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            kenteken = kenteken,
+                            detail = state.detail!!,
+                            state = state,
+                            unitPreferences = unitPreferences,
+                            displayFormatter = displayFormatter,
+                            onEvent = onEvent,
+                            onBack = onBack,
+                        )
+                    }
+                }
             }
         }
     }
@@ -212,6 +248,7 @@ private fun VehicleCompareScaffold(
 
 @Composable
 private fun VehicleCompareContent(
+    kenteken: String,
     detail: VehicleLicensePlateInfo,
     state: VehicleDetailState,
     unitPreferences: UnitPreferences,
@@ -225,195 +262,39 @@ private fun VehicleCompareContent(
         PakkiePakkieCalculator.effectiveVermogenKw(it, state.myTune, state.myIsChipped)
     }
     val detailKw = PakkiePakkieCalculator.effectiveVermogenKw(detail, state.detailTune, state.detailIsChipped)
-    val winPct = my?.let {
-        PakkiePakkieCalculator.winProbabilityPercent(
-            my = it,
-            other = detail,
-            myVermogenKwOverride = myKw,
-            otherVermogenKwOverride = detailKw,
-        )
-    }
     val isMyVehicle = state.isMyVehicle(detail.kenteken)
+    val profile = state.myProfile
 
     Column(
         modifier = modifier.animateContentSize(
             animationSpec = PakkieAnimations.contentSizeSpec(),
         ),
     ) {
-        Text(
-            text = "${detail.merk} ${detail.handelsbenaming}".trim(),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
+        BattleCardHeader(
+            kenteken = kenteken,
+            isFavorite = state.isFavorite,
+            onBack = onBack,
+            onFavoriteClick = { onEvent(VehicleDetailEvent.OnToggleFavorite) },
         )
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            ),
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = stringResource(Res.string.compare_win_chance_title),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
-                Spacer(Modifier.height(8.dp))
-                PakkiePakkieGauge(percent = winPct, sizeDp = 140f)
-                if (my != null) {
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        text = stringResource(Res.string.compare_win_chance_disclaimer),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-                if (my == null) {
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(Res.string.compare_set_my_car_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            }
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        ChippedVehicleCard(
-            caption = stringResource(Res.string.compare_caption_this_vehicle),
-            kenteken = detail.kenteken,
-            isChipped = state.detailIsChipped,
-            tune = state.detailTune,
-            canChip = ChippedTuneCalculator.canBeChipped(detail),
-            onToggle = { onEvent(VehicleDetailEvent.OnToggleDetailChipped) },
+        BattleHeader(
+            my = my,
+            detail = detail,
+            isViewingOwnCar = isMyVehicle,
         )
 
-        if (my != null && !isMyVehicle) {
-            Spacer(Modifier.height(8.dp))
-            ChippedVehicleCard(
-                caption = stringResource(Res.string.compare_caption_your_vehicle),
-                kenteken = my.kenteken,
-                isChipped = state.myIsChipped,
-                tune = state.myTune,
-                canChip = ChippedTuneCalculator.canBeChipped(my),
-                onToggle = { onEvent(VehicleDetailEvent.OnToggleMyChipped) },
-            )
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            ),
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .animateContentSize(animationSpec = PakkieAnimations.contentSizeSpec()),
-            ) {
-                CompareRow(
-                    label = powerCompareLabel(
-                        prefs = unitPreferences,
-                        showStage1 = state.detailIsChipped || state.myIsChipped,
-                    ),
-                    detailText = formatEffectivePower(detail, state.detailIsChipped, state.detailTune, displayFormatter, unitPreferences),
-                    myText = my?.let { formatEffectivePower(it, state.myIsChipped, state.myTune, displayFormatter, unitPreferences) }
-                        ?: UnitSymbols.EM_DASH,
-                    trend = compareHigherBetter(detailKw, myKw),
-                )
-                CompareDivider()
-                CompareRow(
-                    label = stringResource(Res.string.compare_label_pk_per_kg),
-                    detailText = displayFormatter.formatPkPerKilo(detail),
-                    myText = my?.let { displayFormatter.formatPkPerKilo(it) } ?: UnitSymbols.EM_DASH,
-                    trend = compareHigherBetter(
-                        displayFormatter.pkPerKilo(detail),
-                        my?.let { displayFormatter.pkPerKilo(it) },
-                    ),
-                )
-                CompareDivider()
-                CompareRow(
-                    label = weightSpecLabel(unitPreferences, rijklaar = true),
-                    detailText = displayFormatter.formatWeight(detail.massaRijklaarKg, unitPreferences),
-                    myText = displayFormatter.formatWeight(my?.massaRijklaarKg, unitPreferences),
-                    trend = compareLowerBetter(
-                        detail.massaRijklaarKg?.toDouble(),
-                        my?.massaRijklaarKg?.toDouble(),
-                    ),
-                    invertArrow = true,
-                )
-                CompareDivider()
-                CompareRow(
-                    label = weightSpecLabel(unitPreferences, rijklaar = false),
-                    detailText = displayFormatter.formatWeight(detail.massaLedigKg, unitPreferences),
-                    myText = displayFormatter.formatWeight(my?.massaLedigKg, unitPreferences),
-                    trend = compareLowerBetter(
-                        detail.massaLedigKg?.toDouble(),
-                        my?.massaLedigKg?.toDouble(),
-                    ),
-                    invertArrow = true,
-                )
-                CompareDivider()
-                CompareRow(
-                    label = stringResource(Res.string.compare_label_top_speed),
-                    detailText = formatTopSpeed(detail.maximaleConstructiesnelheidKmh),
-                    myText = formatTopSpeed(my?.maximaleConstructiesnelheidKmh),
-                    trend = compareHigherBetter(
-                        detail.maximaleConstructiesnelheidKmh?.toDouble(),
-                        my?.maximaleConstructiesnelheidKmh?.toDouble(),
-                    ),
-                )
-                CompareDivider()
-                CompareRow(
-                    label = stringResource(Res.string.compare_label_fuel),
-                    detailText = detail.brandstofOmschrijvingen.takeIf { it.isNotEmpty() }?.joinToString(", ")
-                        ?: UnitSymbols.EM_DASH,
-                    myText = my?.brandstofOmschrijvingen.orEmpty().joinToString(", ").ifBlank { UnitSymbols.EM_DASH },
-                    trend = CompareTrend.Neutral,
-                )
-                CompareDivider()
-                CompareRow(
-                    label = stringResource(Res.string.compare_label_transmission),
-                    detailText = versnellingsbakDisplayNl(detail.versnellingsbakCode),
-                    myText = versnellingsbakDisplayNl(my?.versnellingsbakCode),
-                    trend = compareTransmission(detail, my),
-                )
-            }
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        ReviewsSection(
-            state = state,
-            onEvent = onEvent,
-        )
-
-        Spacer(Modifier.height(16.dp))
-
-        if (isMyVehicle) {
-            OutlinedButton(
-                onClick = { onEvent(VehicleDetailEvent.OnClearAsMyVehicle) },
+        if (my == null) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = stringResource(Res.string.compare_set_my_car_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(Res.string.action_clear_my_vehicle))
-            }
-        } else {
+            )
+            Spacer(modifier = Modifier.height(12.dp))
             OutlinedButton(
                 onClick = { onEvent(VehicleDetailEvent.OnSetAsMyVehicle) },
                 modifier = Modifier.fillMaxWidth(),
@@ -422,100 +303,303 @@ private fun VehicleCompareContent(
             }
         }
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
-        Button(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(Res.string.action_done))
+        BattleStats(
+            my = my,
+            detail = detail,
+            myKw = myKw,
+            detailKw = detailKw,
+            myIsChipped = state.myIsChipped,
+            detailIsChipped = state.detailIsChipped,
+            profile = profile,
+            isMyVehicle = isMyVehicle,
+            displayFormatter = displayFormatter,
+            unitPreferences = unitPreferences,
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun BattleCardHeader(
+    kenteken: String,
+    isFavorite: Boolean,
+    onBack: () -> Unit,
+    onFavoriteClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CircularIconButton(symbol = UiSymbols.BACK, onClick = onBack)
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 8.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            LicensePlateBadge(kenteken = kenteken, compact = true)
+        }
+        CircularIconButton(
+            symbol = if (isFavorite) UiSymbols.STAR_FILLED else UiSymbols.STAR_OUTLINE,
+            onClick = onFavoriteClick,
+        )
+    }
+}
+
+@Composable
+private fun BattleHeader(
+    my: VehicleLicensePlateInfo?,
+    detail: VehicleLicensePlateInfo,
+    isViewingOwnCar: Boolean,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        BattleProfile(
+            modifier = Modifier.weight(1f),
+            username = stringResource(Res.string.compare_you_username),
+            carName = my?.let { "${it.merk} ${it.handelsbenaming}".trim() }
+                ?: stringResource(Res.string.compare_set_my_car_hint),
+            avatarLabel = "PP",
+            alignEnd = false,
+        )
+        Text(
+            text = UiSymbols.SWORDS,
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.padding(horizontal = 8.dp),
+        )
+        BattleProfile(
+            modifier = Modifier.weight(1f),
+            username = if (isViewingOwnCar) {
+                stringResource(Res.string.compare_you_username)
+            } else {
+                stringResource(Res.string.compare_them_username)
+            },
+            carName = "${detail.merk} ${detail.handelsbenaming}".trim(),
+            avatarLabel = detail.merk.take(2).ifBlank { "??" },
+            alignEnd = true,
+        )
+    }
+}
+
+@Composable
+private fun BattleProfile(
+    username: String,
+    carName: String,
+    avatarLabel: String,
+    alignEnd: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = if (alignEnd) Arrangement.End else Arrangement.Start,
+        ) {
+            if (!alignEnd) {
+                UserAvatar(label = avatarLabel, size = 48.dp)
+                Spacer(modifier = Modifier.size(8.dp))
+            }
+            Column(horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start) {
+                Text(
+                    text = username,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = carName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = if (alignEnd) TextAlign.End else TextAlign.Start,
+                )
+            }
+            if (alignEnd) {
+                Spacer(modifier = Modifier.size(8.dp))
+                UserAvatar(label = avatarLabel, size = 48.dp)
+            }
         }
     }
 }
 
 @Composable
-private fun ReviewsSection(
-    state: VehicleDetailState,
-    onEvent: (VehicleDetailEvent) -> Unit,
-    modifier: Modifier = Modifier,
+private fun BattleStats(
+    my: VehicleLicensePlateInfo?,
+    detail: VehicleLicensePlateInfo,
+    myKw: Double?,
+    detailKw: Double?,
+    myIsChipped: Boolean,
+    detailIsChipped: Boolean,
+    profile: UserVehicleProfile,
+    isMyVehicle: Boolean,
+    displayFormatter: VehicleDisplayFormatter,
+    unitPreferences: UnitPreferences,
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        ),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-        ) {
-            Text(
-                text = stringResource(Res.string.reviews_section_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+    val myPk = myKw?.times(1.36)
+    val detailPk = detailKw?.times(1.36)
+    val myPowerText = myPk?.let { stringResource(Res.string.format_power_pk, it.toInt()) }
+        ?: UnitSymbols.EM_DASH
+    val detailPowerText = detailPk?.let { stringResource(Res.string.format_power_pk, it.toInt()) }
+        ?: UnitSymbols.EM_DASH
 
-            val average = state.averageRating
-            if (average != null && state.reviews.isNotEmpty()) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    StarRating(rating = average.toInt().coerceIn(1, 5), starSizeSp = 18f)
-                    val countLabel = if (state.reviews.size == 1) {
-                        stringResource(Res.string.review_count_one, state.reviews.size)
-                    } else {
-                        stringResource(Res.string.review_count_other, state.reviews.size)
-                    }
-                    Text(
-                        text = stringResource(
-                            Res.string.review_average_summary,
-                            formatAverageRating(average),
-                            countLabel,
-                        ),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
+    Column(modifier = Modifier.fillMaxWidth()) {
+        NumericStat(
+            label = stringResource(Res.string.compare_label_power),
+            icon = "⚡",
+            leftValue = myPowerText,
+            rightValue = detailPowerText,
+            leftNumeric = myPk,
+            rightNumeric = detailPk,
+            higherIsBetter = true,
+        )
+        NumericStat(
+            label = stringResource(Res.string.compare_label_top_speed),
+            icon = "🏁",
+            leftValue = formatTopSpeed(my?.maximaleConstructiesnelheidKmh),
+            rightValue = formatTopSpeed(detail.maximaleConstructiesnelheidKmh),
+            leftNumeric = my?.maximaleConstructiesnelheidKmh?.toDouble(),
+            rightNumeric = detail.maximaleConstructiesnelheidKmh?.toDouble(),
+            higherIsBetter = true,
+        )
+        NumericStat(
+            label = stringResource(Res.string.compare_label_curb_weight),
+            icon = "⚖",
+            leftValue = displayFormatter.formatWeight(my?.massaRijklaarKg, unitPreferences),
+            rightValue = displayFormatter.formatWeight(detail.massaRijklaarKg, unitPreferences),
+            leftNumeric = my?.massaRijklaarKg?.toDouble(),
+            rightNumeric = detail.massaRijklaarKg?.toDouble(),
+            higherIsBetter = false,
+        )
+        NumericStat(
+            label = stringResource(Res.string.compare_label_empty_weight),
+            icon = "⚖",
+            leftValue = displayFormatter.formatWeight(my?.massaLedigKg, unitPreferences),
+            rightValue = displayFormatter.formatWeight(detail.massaLedigKg, unitPreferences),
+            leftNumeric = my?.massaLedigKg?.toDouble(),
+            rightNumeric = detail.massaLedigKg?.toDouble(),
+            higherIsBetter = false,
+        )
+
+        val leftChipped = my != null && myIsChipped
+        val rightChipped = detailIsChipped
+        BooleanStat(
+            label = stringResource(Res.string.compare_label_chipped),
+            icon = "▣",
+            leftValue = when {
+                my == null -> UnitSymbols.EM_DASH
+                leftChipped -> stringResource(Res.string.compare_value_chipped_yes)
+                else -> stringResource(Res.string.compare_value_chipped_no)
+            },
+            rightValue = if (rightChipped) {
+                stringResource(Res.string.compare_value_chipped_yes)
             } else {
-                Text(
-                    text = stringResource(Res.string.reviews_empty),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-            }
+                stringResource(Res.string.compare_value_chipped_no)
+            },
+            leftWins = leftChipped && !rightChipped,
+            tie = leftChipped == rightChipped,
+        )
 
-            state.reviews.forEachIndexed { index, review ->
-                if (index > 0) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                }
-                ReviewListItem(review = review)
-            }
+        val leftNitrous = my != null && profile.hasNitrous
+        val rightNitrous = isMyVehicle && profile.hasNitrous
+        BooleanStat(
+            label = stringResource(Res.string.compare_label_nitrous),
+            icon = "⬡",
+            leftValue = when {
+                my == null -> UnitSymbols.EM_DASH
+                leftNitrous -> stringResource(Res.string.compare_value_nitrous_yes)
+                else -> stringResource(Res.string.compare_value_nitrous_no)
+            },
+            rightValue = if (rightNitrous) {
+                stringResource(Res.string.compare_value_nitrous_yes)
+            } else {
+                stringResource(Res.string.compare_value_nitrous_no)
+            },
+            leftWins = leftNitrous && !rightNitrous,
+            tie = leftNitrous == rightNitrous,
+        )
 
-            Spacer(modifier = Modifier.height(8.dp))
+        val leftExhaust = my != null && profile.hasModdedExhaust
+        val rightExhaust = isMyVehicle && profile.hasModdedExhaust
+        BooleanStat(
+            label = stringResource(Res.string.compare_label_modded_exhaust),
+            icon = "⌁",
+            leftValue = when {
+                my == null -> UnitSymbols.EM_DASH
+                leftExhaust -> stringResource(Res.string.compare_value_exhaust_yes)
+                else -> stringResource(Res.string.compare_value_exhaust_no)
+            },
+            rightValue = if (rightExhaust) {
+                stringResource(Res.string.compare_value_exhaust_yes)
+            } else {
+                stringResource(Res.string.compare_value_exhaust_no)
+            },
+            leftWins = leftExhaust && !rightExhaust,
+            tie = leftExhaust == rightExhaust,
+        )
 
-            Button(
-                onClick = { onEvent(VehicleDetailEvent.OnOpenReviewSheet) },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    text = if (state.myReview != null) {
-                        stringResource(Res.string.action_edit_review)
-                    } else {
-                        stringResource(Res.string.action_write_review)
-                    },
-                )
-            }
-        }
+        CompareStatRow(
+            label = stringResource(Res.string.compare_label_tires),
+            leftValue = if (my == null) UnitSymbols.EM_DASH else tireLabel(profile.tires),
+            rightValue = if (isMyVehicle) tireLabel(profile.tires) else UnitSymbols.EM_DASH,
+            outcome = CompareOutcome(CompareBarTone.Tie, 1f, leftWins = false, isTie = true),
+            icon = "◉",
+        )
     }
 }
 
-private fun formatAverageRating(average: Float): String {
-    val tenths = ((average * 10f) + 0.5f).toInt()
-    val whole = tenths / 10
-    val fraction = tenths % 10
-    return if (fraction == 0) "$whole" else "$whole,$fraction"
+@Composable
+private fun NumericStat(
+    label: String,
+    leftValue: String,
+    rightValue: String,
+    leftNumeric: Double?,
+    rightNumeric: Double?,
+    higherIsBetter: Boolean,
+    icon: String? = null,
+) {
+    CompareStatRow(
+        label = label,
+        leftValue = leftValue,
+        rightValue = rightValue,
+        outcome = compareNumericOutcome(leftNumeric, rightNumeric, higherIsBetter),
+        icon = icon,
+    )
+}
+
+@Composable
+private fun BooleanStat(
+    label: String,
+    leftValue: String,
+    rightValue: String,
+    leftWins: Boolean,
+    tie: Boolean,
+    icon: String? = null,
+) {
+    CompareStatRow(
+        label = label,
+        leftValue = leftValue,
+        rightValue = rightValue,
+        outcome = compareBooleanOutcome(leftWins = leftWins, tie = tie),
+        icon = icon,
+    )
+}
+
+@Composable
+private fun tireLabel(tires: TireType): String = when (tires) {
+    TireType.Summer -> stringResource(Res.string.profile_tires_summer)
+    TireType.Winter -> stringResource(Res.string.profile_tires_winter)
+    TireType.AllSeason -> stringResource(Res.string.profile_tires_allseason)
 }
 
 @Composable
@@ -523,185 +607,51 @@ private fun formatTopSpeed(kmh: Int?): String =
     kmh?.let { stringResource(Res.string.unit_speed_kmh, it) } ?: UnitSymbols.EM_DASH
 
 @Composable
-private fun powerCompareLabel(
-    prefs: UnitPreferences,
-    showStage1: Boolean,
-): String = if (showStage1) {
-    stringResource(Res.string.compare_label_power_stage1)
-} else {
-    powerSpecLabel(prefs)
-}
-
-@Composable
-private fun formatEffectivePower(
-    info: VehicleLicensePlateInfo,
-    isChipped: Boolean,
-    tune: ChippedTuneEstimate?,
-    formatter: VehicleDisplayFormatter,
-    prefs: UnitPreferences,
-): String {
-    val kw = PakkiePakkieCalculator.effectiveVermogenKw(info, tune, isChipped)
-    val formatted = formatter.formatPower(kw, prefs)
-    return if (isChipped && tune != null) {
-        formatted + stringResource(Res.string.compare_power_estimated_suffix)
-    } else {
-        formatted
-    }
-}
-
-@Composable
-private fun CompareDivider() {
-    HorizontalDivider(
-        modifier = Modifier.padding(horizontal = 16.dp),
-        color = MaterialTheme.colorScheme.outlineVariant,
-    )
-}
-
-private fun compareHigherBetter(detail: Double?, my: Double?): CompareTrend {
-    if (detail == null || my == null) return CompareTrend.Neutral
-    return when {
-        detail > my -> CompareTrend.DetailBetter
-        detail < my -> CompareTrend.DetailWorse
-        else -> CompareTrend.Neutral
-    }
-}
-
-private fun compareLowerBetter(detail: Double?, my: Double?): CompareTrend {
-    if (detail == null || my == null) return CompareTrend.Neutral
-    return when {
-        detail < my -> CompareTrend.DetailBetter
-        detail > my -> CompareTrend.DetailWorse
-        else -> CompareTrend.Neutral
-    }
-}
-
-private fun compareTransmission(detail: VehicleLicensePlateInfo, my: VehicleLicensePlateInfo?): CompareTrend {
-    if (my == null) return CompareTrend.Neutral
-    val d = PakkiePakkieCalculator.transmissionMultiplier(detail.versnellingsbakCode, detail.brandstofOmschrijvingen)
-    val m = PakkiePakkieCalculator.transmissionMultiplier(my.versnellingsbakCode, my.brandstofOmschrijvingen)
-    return when {
-        d > m -> CompareTrend.DetailBetter
-        d < m -> CompareTrend.DetailWorse
-        else -> CompareTrend.Neutral
-    }
-}
-
-@Composable
-private fun CompareRow(
-    label: String,
-    detailText: String,
-    myText: String,
-    trend: CompareTrend,
-    modifier: Modifier = Modifier,
-    invertArrow: Boolean = false,
-) {
-    val good = MaterialTheme.colorScheme.primary
-    val bad = MaterialTheme.colorScheme.error
-    val neutral = MaterialTheme.colorScheme.onSurface
-    val (arrow, detailColor) = when (trend) {
-        CompareTrend.DetailBetter -> (if (invertArrow) "↓" else "↑") to good
-        CompareTrend.DetailWorse -> (if (invertArrow) "↑" else "↓") to bad
-        CompareTrend.Neutral -> "" to neutral
-    }
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Spacer(Modifier.height(6.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            CompareValueCell(
-                modifier = Modifier.weight(1f),
-                caption = stringResource(Res.string.compare_caption_this_short),
-                value = detailText,
-                valueColor = detailColor,
-                suffix = arrow,
-            )
-            CompareValueCell(
-                modifier = Modifier.weight(1f),
-                caption = stringResource(Res.string.compare_caption_your_short),
-                value = myText,
-                valueColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-@Composable
-private fun CompareValueCell(
-    caption: String,
-    value: String,
-    valueColor: androidx.compose.ui.graphics.Color,
-    modifier: Modifier = Modifier,
-    suffix: String = "",
-) {
-    Column(modifier = modifier) {
-        Text(
-            text = caption,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = if (suffix.isBlank()) value else "$value $suffix",
-            style = MaterialTheme.typography.bodyLarge,
-            color = valueColor,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-@Composable
 private fun VehicleComparePreviewContent() {
     val formatter = VehicleDisplayFormatter()
     VehicleCompareScaffold(
-        kenteken = "PL700K",
+        kenteken = "78DFW9",
         state = VehicleDetailState(
             loading = false,
             detail = VehicleLicensePlateInfo(
-                kenteken = "PL700K",
-                merk = "VOLVO",
-                handelsbenaming = "V40",
+                kenteken = "78DFW9",
+                merk = "Volkswagen",
+                handelsbenaming = "Golf 1.0 TSI",
                 massaRijklaarKg = 1420,
-                massaLedigKg = 1300,
-                cilinderinhoudCc = 1596,
-                vermogenMassaRijklaar = 0.08,
-                vermogenKw = 110.0,
+                massaLedigKg = 1320,
+                cilinderinhoudCc = 999,
+                vermogenMassaRijklaar = 0.055,
+                vermogenKw = 77.0,
                 brandstofOmschrijvingen = listOf("Benzine"),
                 hybridKlasse = null,
                 versnellingsbakCode = "M",
                 aantalVersnellingen = 6,
-                maximaleConstructiesnelheidKmh = 210,
+                maximaleConstructiesnelheidKmh = 160,
             ),
             my = VehicleLicensePlateInfo(
-                kenteken = "ABC12D",
-                merk = "TOYOTA",
-                handelsbenaming = "Yaris",
-                massaRijklaarKg = 1150,
-                massaLedigKg = 1050,
-                cilinderinhoudCc = 1498,
-                vermogenMassaRijklaar = 0.09,
-                vermogenKw = 85.0,
+                kenteken = "HDJ70K",
+                merk = "BMW",
+                handelsbenaming = "1er Reihe",
+                massaRijklaarKg = 1370,
+                massaLedigKg = 1270,
+                cilinderinhoudCc = 1499,
+                vermogenMassaRijklaar = 0.037,
+                vermogenKw = 51.0,
                 brandstofOmschrijvingen = listOf("Benzine"),
                 hybridKlasse = null,
                 versnellingsbakCode = "A",
                 aantalVersnellingen = 8,
-                maximaleConstructiesnelheidKmh = 180,
+                maximaleConstructiesnelheidKmh = 420,
             ),
-            myVehicleKenteken = "ABC12D",
+            myVehicleKenteken = "HDJ70K",
+            myIsChipped = true,
+            detailIsChipped = false,
+            myProfile = UserVehicleProfile(hasNitrous = true, hasModdedExhaust = false),
             errorMessage = null,
         ),
         unitPreferences = UnitPreferences(),
         displayFormatter = formatter,
+        snackbarHostState = remember { SnackbarHostState() },
         onBack = {},
         onEvent = {},
     )

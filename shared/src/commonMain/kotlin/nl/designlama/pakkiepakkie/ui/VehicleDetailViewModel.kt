@@ -1,6 +1,9 @@
 package nl.designlama.pakkiepakkie.ui
 
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -13,6 +16,9 @@ import nl.designlama.pakkiepakkie.data.ReviewRepository
 import nl.designlama.pakkiepakkie.data.VehicleLicenseRepository
 import nl.designlama.pakkiepakkie.data.local.VehicleLookupDataVersion
 import nl.designlama.pakkiepakkie.data.toVehicleLicensePlateInfo
+import nl.designlama.pakkiepakkie.datastore.FavoritesRepository
+import nl.designlama.pakkiepakkie.datastore.UserVehicleProfile
+import nl.designlama.pakkiepakkie.datastore.UserVehicleProfileRepository
 import nl.designlama.pakkiepakkie.datastore.UserVehicleRepository
 import nl.designlama.pakkiepakkie.network.chipped.ChippedTuneCalculator
 import nl.designlama.pakkiepakkie.network.chipped.ChippedTuneEstimate
@@ -30,6 +36,8 @@ data class VehicleDetailState(
     val myIsChipped: Boolean = false,
     val detailTune: ChippedTuneEstimate? = null,
     val myTune: ChippedTuneEstimate? = null,
+    val myProfile: UserVehicleProfile = UserVehicleProfile(),
+    val isFavorite: Boolean = false,
     val reviews: List<Review> = emptyList(),
     val myReview: Review? = null,
     val averageRating: Float? = null,
@@ -49,6 +57,7 @@ data class VehicleDetailState(
 sealed interface VehicleDetailEvent : UIEvent {
     data object OnSetAsMyVehicle : VehicleDetailEvent
     data object OnClearAsMyVehicle : VehicleDetailEvent
+    data object OnToggleFavorite : VehicleDetailEvent
     data object OnToggleDetailChipped : VehicleDetailEvent
     data object OnToggleMyChipped : VehicleDetailEvent
     data object OnOpenReviewSheet : VehicleDetailEvent
@@ -62,8 +71,13 @@ class VehicleDetailViewModel(
     private val vehicleLicenseRepository: VehicleLicenseRepository,
     private val userVehicleRepository: UserVehicleRepository,
     private val reviewRepository: ReviewRepository,
+    private val favoritesRepository: FavoritesRepository,
+    private val profileRepository: UserVehicleProfileRepository,
     private val kenteken: String,
 ) : BaseViewModel<VehicleDetailState, VehicleDetailEvent, UIDirections>() {
+
+    private val _snackbar = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val snackbar: SharedFlow<String> = _snackbar.asSharedFlow()
 
     init {
         loadVehicle()
@@ -78,6 +92,19 @@ class VehicleDetailViewModel(
                     myIsChipped = myChipped,
                     myTune = if (myInfo != null && myChipped) ChippedTuneCalculator.estimate(myInfo) else null,
                 )
+            }
+        }
+        viewModelScope.launch {
+            favoritesRepository.favoritesFlow().collectLatest { favorites ->
+                val norm = sanitizeLicensePlate(kenteken)
+                _state.value = _state.value.copy(
+                    isFavorite = favorites.any { sanitizeLicensePlate(it) == norm },
+                )
+            }
+        }
+        viewModelScope.launch {
+            profileRepository.profileFlow().collectLatest { profile ->
+                _state.value = _state.value.copy(myProfile = profile)
             }
         }
         viewModelScope.launch {
@@ -123,6 +150,14 @@ class VehicleDetailViewModel(
             VehicleDetailEvent.OnClearAsMyVehicle -> {
                 viewModelScope.launch {
                     runCatching { userVehicleRepository.clearMyVehicle() }
+                }
+            }
+            VehicleDetailEvent.OnToggleFavorite -> {
+                viewModelScope.launch {
+                    val added = favoritesRepository.toggleFavorite(kenteken)
+                    _snackbar.emit(
+                        if (added) HomeViewModel.SNACKBAR_ADDED else HomeViewModel.SNACKBAR_REMOVED,
+                    )
                 }
             }
             VehicleDetailEvent.OnToggleDetailChipped -> toggleChipped(forDetail = true)
@@ -241,6 +276,8 @@ class VehicleDetailViewModel(
             val detailChipped = vehicleLicenseRepository.isChipped(norm)
             val myChipped = myK?.let { vehicleLicenseRepository.isChipped(it) } ?: false
             val myInfo = resolveMyVehicleInfo(myK)
+            val isFavorite = favoritesRepository.isFavorite(norm)
+            val profile = profileRepository.profileFlow().first()
             val current = _state.value
             _state.value = current.copy(
                 loading = false,
@@ -252,6 +289,8 @@ class VehicleDetailViewModel(
                 myIsChipped = myChipped,
                 detailTune = if (detailChipped) ChippedTuneCalculator.estimate(detail) else null,
                 myTune = if (myInfo != null && myChipped) ChippedTuneCalculator.estimate(myInfo) else null,
+                isFavorite = isFavorite,
+                myProfile = profile,
             )
         }
     }

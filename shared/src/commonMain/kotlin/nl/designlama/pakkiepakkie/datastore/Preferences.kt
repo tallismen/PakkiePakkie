@@ -11,6 +11,11 @@ object PreferencesKeys {
     const val UNIT_PRESET = "unit_preset"
     const val POWER_UNIT = "power_unit"
     const val WEIGHT_UNIT = "weight_unit"
+    const val FAVORITE_KENTEKENS = "favorite_kentekens"
+    const val VEHICLE_MILEAGE_KM = "vehicle_mileage_km"
+    const val VEHICLE_TIRES = "vehicle_tires"
+    const val VEHICLE_HAS_NITROUS = "vehicle_has_nitrous"
+    const val VEHICLE_HAS_MODDED_EXHAUST = "vehicle_has_modded_exhaust"
 }
 
 interface AppSettings {

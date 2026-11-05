@@ -4,8 +4,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -54,7 +56,9 @@ private fun TestMenuContent(
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        contentWindowInsets = WindowInsets.safeDrawing,
+        contentWindowInsets = WindowInsets.safeDrawing.only(
+            WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal,
+        ),
         topBar = {
             PakkiePakkieTopBar(
                 title = stringResource(Res.string.test_menu_title),

@@ -1,8 +1,6 @@
 package nl.designlama.pakkiepakkie.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,27 +8,21 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,97 +33,142 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.collectLatest
-import nl.designlama.pakkiepakkie.data.LatestReviewedPlate
 import nl.designlama.pakkiepakkie.data.local.VehicleLookupEntity
 import nl.designlama.pakkiepakkie.network.rdw.VehicleLicensePlateInfo
-import nl.designlama.pakkiepakkie.ui.components.DutchLicensePlateInput
-import nl.designlama.pakkiepakkie.ui.components.LicensePlateInputStyle
+import nl.designlama.pakkiepakkie.ui.components.BrandMark
+import nl.designlama.pakkiepakkie.ui.components.FilterIconButton
+import nl.designlama.pakkiepakkie.ui.components.LicensePlateBadge
 import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieGauge
-import nl.designlama.pakkiepakkie.ui.components.PakkiePakkieText
 import nl.designlama.pakkiepakkie.ui.components.PreviewContainer
-import nl.designlama.pakkiepakkie.ui.components.StarRating
-import nl.designlama.pakkiepakkie.ui.components.UiSymbols
-import nl.designlama.pakkiepakkie.ui.components.formatLicensePlate
-import nl.designlama.pakkiepakkie.ui.components.sanitizeLicensePlate
+import nl.designlama.pakkiepakkie.ui.components.SearchEntryField
+import nl.designlama.pakkiepakkie.ui.components.UserAvatar
+import nl.designlama.pakkiepakkie.ui.components.VehicleListCard
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import pakkiepakkie.shared.generated.resources.Res
+import pakkiepakkie.shared.generated.resources.format_power_pk
+import pakkiepakkie.shared.generated.resources.home_empty_search_prompt
+import pakkiepakkie.shared.generated.resources.home_favorite_added
+import pakkiepakkie.shared.generated.resources.home_favorite_removed
 import pakkiepakkie.shared.generated.resources.home_gauge_average
-import pakkiepakkie.shared.generated.resources.home_no_my_vehicle_body
-import pakkiepakkie.shared.generated.resources.home_no_my_vehicle_title
 import pakkiepakkie.shared.generated.resources.home_profile_placeholder
-import pakkiepakkie.shared.generated.resources.home_section_latest_reviewed
+import pakkiepakkie.shared.generated.resources.home_section_favorites
 import pakkiepakkie.shared.generated.resources.home_section_recent
-import pakkiepakkie.shared.generated.resources.review_average_summary
-import pakkiepakkie.shared.generated.resources.review_count_one
-import pakkiepakkie.shared.generated.resources.review_count_other
+import pakkiepakkie.shared.generated.resources.home_vehicle_subtitle
 import kotlin.math.max
 import kotlin.math.min
 
 private val HeroMaxHeight = 236.dp
-private val SheetCorner = 28.dp
-private const val SearchDockProgress = 0.88f
+private const val SearchDockProgress = 0.75f
+private const val HeroMinScale = 0.25f
 
 @Composable
 fun HomeScreen(
     onOpenVehicleDetail: (String) -> Unit,
-    onOpenSettings: () -> Unit,
+    onOpenSearch: () -> Unit,
+    onOpenProfile: () -> Unit,
     viewModel: HomeViewModel = koinViewModel(),
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val favoriteAdded = stringResource(Res.string.home_favorite_added)
+    val favoriteRemoved = stringResource(Res.string.home_favorite_removed)
+
     LaunchedEffect(viewModel) {
         viewModel.directions.collectLatest { dir ->
             when (dir) {
                 is HomeDirections.OpenVehicleDetail -> onOpenVehicleDetail(dir.kenteken)
-                HomeDirections.OpenSettings -> onOpenSettings()
+                HomeDirections.OpenSearch -> onOpenSearch()
+                HomeDirections.OpenProfile -> onOpenProfile()
             }
         }
     }
-    HomeContent(
-        state = state,
-        onEvent = viewModel::onEvent,
-        modifier = modifier,
-    )
+    LaunchedEffect(viewModel) {
+        viewModel.snackbar.collectLatest { key ->
+            val message = when (key) {
+                HomeViewModel.SNACKBAR_ADDED -> favoriteAdded
+                HomeViewModel.SNACKBAR_REMOVED -> favoriteRemoved
+                else -> key
+            }
+            snackbarHostState.showSnackbar(message)
+        }
+    }
+
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets.safeDrawing,
+    ) { padding ->
+        HomeContent(
+            state = state,
+            onEvent = viewModel::onEvent,
+            listModels = { entities, winMap ->
+                viewModel.toListModels(entities, winMap, state.favoriteKentekens)
+            },
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+        )
+    }
 }
 
 @Composable
 private fun HomeContent(
     state: HomeState,
     onEvent: (HomeEvent) -> Unit,
+    listModels: (
+        List<VehicleLookupEntity>,
+        Map<String, Float?>,
+    ) -> List<nl.designlama.pakkiepakkie.ui.components.VehicleListItemModel>,
     modifier: Modifier = Modifier,
 ) {
-    val focusManager = LocalFocusManager.current
     val density = LocalDensity.current
     val collapseRangePx = with(density) { HeroMaxHeight.toPx() }
     var collapsePx by remember { mutableFloatStateOf(0f) }
-    val collapseProgress = (collapsePx / collapseRangePx).coerceIn(0f, 1f)
-    val searchInTopBar = collapseProgress >= SearchDockProgress
-    val listState = rememberLazyListState()
+    val collapseProgress = if (state.hasMyVehicle) {
+        (collapsePx / collapseRangePx).coerceIn(0f, 1f)
+    } else {
+        1f
+    }
+    val searchInTopBar = !state.hasMyVehicle || collapseProgress >= SearchDockProgress
+    val heroScale = max(HeroMinScale, 1f - collapseProgress * (1f - HeroMinScale))
+    val heroVisible = state.hasMyVehicle && collapseProgress < 0.98f
+
+    val pages = buildList {
+        if (state.recent.isNotEmpty()) add(HomePagerPage.Recent)
+        if (state.favorites.isNotEmpty()) add(HomePagerPage.Favorites)
+    }
+    val pagerState = rememberPagerState(pageCount = { pages.size.coerceAtLeast(1) })
+    val recentListState = rememberLazyListState()
+    val favoritesListState = rememberLazyListState()
+    val activeListState = when (pages.getOrNull(pagerState.currentPage)) {
+        HomePagerPage.Favorites -> favoritesListState
+        else -> recentListState
+    }
     val listAtTop = remember { mutableStateOf(true) }
     listAtTop.value =
-        listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
+        activeListState.firstVisibleItemIndex == 0 && activeListState.firstVisibleItemScrollOffset == 0
 
-    val nestedScrollConnection = remember(collapseRangePx) {
+    val nestedScrollConnection = remember(collapseRangePx, state.hasMyVehicle) {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (!state.hasMyVehicle) return Offset.Zero
                 val delta = available.y
                 if (delta < 0f && collapsePx < collapseRangePx) {
                     val consumed = min(-delta, collapseRangePx - collapsePx)
@@ -146,6 +183,7 @@ private fun HomeContent(
                 available: Offset,
                 source: NestedScrollSource,
             ): Offset {
+                if (!state.hasMyVehicle) return Offset.Zero
                 val delta = available.y
                 if (delta > 0f && collapsePx > 0f && listAtTop.value) {
                     val consumedUp = min(delta, collapsePx)
@@ -156,6 +194,7 @@ private fun HomeContent(
             }
 
             override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                if (!state.hasMyVehicle) return Velocity.Zero
                 if (available.y > 0f && collapsePx > 0f && listAtTop.value) {
                     collapsePx = 0f
                     return Velocity(0f, available.y)
@@ -165,49 +204,45 @@ private fun HomeContent(
         }
     }
 
-    val navigationBarPadding = WindowInsets.navigationBars.asPaddingValues()
+    var recentExpanded by remember { mutableStateOf(false) }
+    var favoritesExpanded by remember { mutableStateOf(false) }
+    val showLists = pages.isNotEmpty()
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top))
-            .pointerInput(Unit) {
-                detectTapGestures(onTap = { focusManager.clearFocus() })
-            }
             .nestedScroll(nestedScrollConnection),
     ) {
         HomeTopBar(
             searchInTopBar = searchInTopBar,
-            licensePlateInput = state.licensePlateInput,
-            searchEnabled = !state.loading,
-            onLicensePlateChange = { onEvent(HomeEvent.OnLicensePlateChange(it)) },
-            onSearch = { onEvent(HomeEvent.OnSearchClick) },
-            onSettingsClick = { onEvent(HomeEvent.OnSettingsClick) },
+            merk = state.myVehicleInfo?.merk,
+            plate = state.myVehicleKenteken,
+            onSearchClick = { onEvent(HomeEvent.OnSearchClick) },
+            onFilterClick = { onEvent(HomeEvent.OnFilterClick) },
+            onProfileClick = { onEvent(HomeEvent.OnProfileClick) },
         )
 
-        val heroHeight = HeroMaxHeight * (1f - collapseProgress)
-        if (heroHeight > 0.dp) {
+        if (heroVisible) {
+            val heroHeight = HeroMaxHeight * (1f - collapseProgress)
             HomeHero(
                 state = state,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(heroHeight)
                     .graphicsLayer {
-                        alpha = max(0f, 1f - collapseProgress * 1.35f)
-                        translationY = -collapsePx * 0.15f
+                        alpha = max(0f, 1f - collapseProgress * 1.2f)
+                        scaleX = heroScale
+                        scaleY = heroScale
+                        translationY = -collapsePx * 0.1f
                     },
             )
         }
 
         if (!searchInTopBar) {
-            DutchLicensePlateInput(
-                value = state.licensePlateInput,
-                onValueChange = { raw, _ -> onEvent(HomeEvent.OnLicensePlateChange(raw)) },
-                showClearButton = true,
-                style = LicensePlateInputStyle.Search,
-                onDone = { if (state.canSearch) onEvent(HomeEvent.OnSearchClick) },
-                enabled = !state.loading,
+            HomeSearchRow(
+                onSearchClick = { onEvent(HomeEvent.OnSearchClick) },
+                onFilterClick = { onEvent(HomeEvent.OnFilterClick) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
@@ -215,71 +250,78 @@ private fun HomeContent(
             )
         }
 
-        if (state.loading) {
-            CircularProgressIndicator(
+        if (!showLists) {
+            Text(
+                text = stringResource(Res.string.home_empty_search_prompt),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
-                    .padding(bottom = 8.dp)
-                    .size(28.dp),
-                strokeWidth = 3.dp,
+                    .padding(top = 24.dp),
             )
-        }
-
-        state.errorMessage?.let { msg ->
-            PakkiePakkieText(
-                text = msg,
-                textColor = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-            )
-        }
-
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            color = MaterialTheme.colorScheme.surface,
-            shape = RoundedCornerShape(topStart = SheetCorner, topEnd = SheetCorner),
-            tonalElevation = 1.dp,
-            shadowElevation = 8.dp,
-        ) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    bottom = 24.dp + navigationBarPadding.calculateBottomPadding(),
-                ),
-            ) {
-                if (state.recent.isNotEmpty()) {
-                    item(key = "recent-header") {
-                        SheetSectionHeader(stringResource(Res.string.home_section_recent))
-                    }
-                    items(state.recent, key = { "recent-${it.kenteken}" }) { row ->
-                        RecentVehicleRow(
-                            row = row,
-                            winPercent = state.recentWinPercent[row.kenteken],
-                            isMyVehicle = isSameKenteken(row.kenteken, state.myVehicleKenteken),
-                            onClick = { onEvent(HomeEvent.OnRecentRowClick(row.kenteken)) },
-                            onSetMyVehicle = { onEvent(HomeEvent.OnRecentSetMyVehicle(row.kenteken)) },
-                        )
-                        HorizontalDivider(
-                            modifier = Modifier.padding(start = 76.dp),
-                            color = MaterialTheme.colorScheme.outlineVariant,
-                        )
+        } else {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                pageSpacing = 12.dp,
+            ) { pageIndex ->
+                val page = pages[pageIndex]
+                val listState = when (page) {
+                    HomePagerPage.Recent -> recentListState
+                    HomePagerPage.Favorites -> favoritesListState
+                }
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 16.dp),
+                ) {
+                    item(key = "card-$page") {
+                        when (page) {
+                            HomePagerPage.Recent -> VehicleListCard(
+                                title = stringResource(Res.string.home_section_recent),
+                                items = listModels(state.recent, state.recentWinPercent),
+                                expanded = recentExpanded,
+                                onExpandedChange = { recentExpanded = it },
+                                onItemClick = { onEvent(HomeEvent.OnRowClick(it)) },
+                                onFavoriteClick = { onEvent(HomeEvent.OnFavoriteClick(it)) },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            HomePagerPage.Favorites -> VehicleListCard(
+                                title = stringResource(Res.string.home_section_favorites),
+                                items = listModels(state.favorites, state.favoriteWinPercent),
+                                expanded = favoritesExpanded,
+                                onExpandedChange = { favoritesExpanded = it },
+                                onItemClick = { onEvent(HomeEvent.OnRowClick(it)) },
+                                onFavoriteClick = { onEvent(HomeEvent.OnFavoriteClick(it)) },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
                     }
                 }
-
-                if (state.latestReviewed.isNotEmpty()) {
-                    item(key = "reviewed-header") {
-                        SheetSectionHeader(stringResource(Res.string.home_section_latest_reviewed))
-                    }
-                    items(state.latestReviewed, key = { "rev-${it.kenteken}" }) { row ->
-                        LatestReviewedRow(
-                            row = row,
-                            onClick = { onEvent(HomeEvent.OnLatestReviewedClick(row.kenteken)) },
-                        )
-                        HorizontalDivider(
-                            modifier = Modifier.padding(start = 16.dp),
-                            color = MaterialTheme.colorScheme.outlineVariant,
+            }
+            if (pages.size > 1) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    repeat(pages.size) { i ->
+                        Box(
+                            modifier = Modifier
+                                .padding(horizontal = 4.dp)
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (pagerState.currentPage == i) {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    } else {
+                                        MaterialTheme.colorScheme.outlineVariant
+                                    },
+                                ),
                         )
                     }
                 }
@@ -288,61 +330,66 @@ private fun HomeContent(
     }
 }
 
+private enum class HomePagerPage { Recent, Favorites }
+
 @Composable
 private fun HomeTopBar(
     searchInTopBar: Boolean,
-    licensePlateInput: String,
-    searchEnabled: Boolean,
-    onLicensePlateChange: (String) -> Unit,
-    onSearch: () -> Unit,
-    onSettingsClick: () -> Unit,
+    merk: String?,
+    plate: String?,
+    onSearchClick: () -> Unit,
+    onFilterClick: () -> Unit,
+    onProfileClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .padding(8.dp)
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = stringResource(Res.string.home_profile_placeholder),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
+        BrandMark(merk = merk, size = 40.dp)
         if (searchInTopBar) {
-            DutchLicensePlateInput(
-                value = licensePlateInput,
-                onValueChange = { raw, _ -> onLicensePlateChange(raw) },
-                showClearButton = true,
-                style = LicensePlateInputStyle.Search,
+            SearchEntryField(
+                onClick = onSearchClick,
                 compact = true,
-                onDone = onSearch,
-                enabled = searchEnabled,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 4.dp),
+                modifier = Modifier.weight(1f),
             )
+            FilterIconButton(onClick = onFilterClick)
         } else {
-            Spacer(modifier = Modifier.weight(1f))
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (plate != null) {
+                    LicensePlateBadge(kenteken = plate, compact = true)
+                }
+            }
         }
+        UserAvatar(
+            label = stringResource(Res.string.home_profile_placeholder),
+            size = 40.dp,
+            onClick = onProfileClick,
+        )
+    }
+}
 
-        IconButton(onClick = onSettingsClick) {
-            Text(
-                text = UiSymbols.SETTINGS,
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+@Composable
+private fun HomeSearchRow(
+    onSearchClick: () -> Unit,
+    onFilterClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        SearchEntryField(
+            onClick = onSearchClick,
+            modifier = Modifier.weight(1f),
+        )
+        FilterIconButton(onClick = onFilterClick)
     }
 }
 
@@ -351,7 +398,9 @@ private fun HomeHero(
     state: HomeState,
     modifier: Modifier = Modifier,
 ) {
-    val myInfo = state.myVehicleInfo
+    val myInfo = state.myVehicleInfo ?: return
+    val pk = myInfo.vermogenPk?.toInt()
+        ?: myInfo.vermogenKw?.let { (it * 1.36).toInt() }
     Column(
         modifier = modifier.padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -365,210 +414,35 @@ private fun HomeHero(
             animationEnabled = true,
         )
         Spacer(modifier = Modifier.height(8.dp))
-        if (myInfo != null) {
-            Text(
-                text = formatLicensePlate(myInfo.kenteken),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-            Text(
-                text = "${myInfo.merk} ${myInfo.handelsbenaming}".trim(),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        } else {
-            Text(
-                text = stringResource(Res.string.home_no_my_vehicle_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-            Text(
-                text = stringResource(Res.string.home_no_my_vehicle_body),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-@Composable
-private fun SheetSectionHeader(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 8.dp),
-    )
-}
-
-@Composable
-private fun LatestReviewedRow(
-    row: LatestReviewedPlate,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = formatLicensePlate(row.kenteken),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            val countLabel = if (row.reviewCount == 1) {
-                stringResource(Res.string.review_count_one, row.reviewCount)
-            } else {
-                stringResource(Res.string.review_count_other, row.reviewCount)
-            }
-            val subtitle = stringResource(
-                Res.string.review_average_summary,
-                formatHomeAverageRating(row.averageRating),
-                countLabel,
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            row.latestText?.takeIf { it.isNotBlank() }?.let { snippet ->
-                Text(
-                    text = snippet,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-        StarRating(
-            rating = row.averageRating.toInt().coerceIn(1, 5),
-            starSizeSp = 18f,
+        Text(
+            text = "${myInfo.merk} ${myInfo.handelsbenaming}".trim(),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = stringResource(
+                Res.string.home_vehicle_subtitle,
+                pk?.let { stringResource(Res.string.format_power_pk, it) } ?: "—",
+                "—",
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
-}
-
-private fun formatHomeAverageRating(average: Float): String {
-    val tenths = ((average * 10f) + 0.5f).toInt()
-    val whole = tenths / 10
-    val fraction = tenths % 10
-    return if (fraction == 0) "$whole" else "$whole,$fraction"
-}
-
-@Composable
-private fun RecentVehicleRow(
-    row: VehicleLookupEntity,
-    winPercent: Float?,
-    isMyVehicle: Boolean,
-    onClick: () -> Unit,
-    onSetMyVehicle: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        PakkiePakkieGauge(
-            percent = winPercent,
-            sizeDp = 48f,
-            showLabel = false,
-            animationEnabled = false,
-        )
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = formatLicensePlate(row.kenteken),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = "${row.merk} ${row.handelsbenaming}".trim(),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        IconButton(onClick = onSetMyVehicle) {
-            Text(
-                text = if (isMyVehicle) UiSymbols.STAR_FILLED else UiSymbols.STAR_OUTLINE,
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.alpha(if (isMyVehicle) 1f else 0.7f),
-            )
-        }
-    }
-}
-
-private fun isSameKenteken(a: String, b: String?): Boolean {
-    if (b == null) return false
-    return sanitizeLicensePlate(a) == sanitizeLicensePlate(b)
 }
 
 @Composable
 private fun PreviewContent() {
     HomeContent(
         state = HomeState(
-            licensePlateInput = "PL700K",
             recent = listOf(
-                VehicleLookupEntity(
-                    kenteken = "PL700K",
-                    merk = "VOLVO",
-                    handelsbenaming = "V40",
-                    massaRijklaarKg = 1420,
-                    vermogenKw = 110.0,
-                    vermogenPk = 149.6,
-                    massaLedigKg = 1300,
-                    cilinderinhoudCc = 1596,
-                    vermogenMassaRijklaar = 0.08,
-                    primaryBrandstof = "Benzine",
-                    hybridKlasse = null,
-                    brandstofJson = "[\"Benzine\"]",
-                    versnellingsbakCode = "M",
-                    aantalVersnellingen = 6,
-                    dataVersion = 2,
-                    lastViewedAt = 0L,
-                    lastFetchedAt = 0L,
-                    maximaleConstructiesnelheidKmh = 210,
-                    isChipped = false,
-                ),
-                VehicleLookupEntity(
-                    kenteken = "56ZKD3",
-                    merk = "OPEL",
-                    handelsbenaming = "Corsa",
-                    massaRijklaarKg = 1200,
-                    vermogenKw = 66.0,
-                    vermogenPk = 90.0,
-                    massaLedigKg = 1100,
-                    cilinderinhoudCc = 1200,
-                    vermogenMassaRijklaar = 0.055,
-                    primaryBrandstof = "Benzine",
-                    hybridKlasse = null,
-                    brandstofJson = "[\"Benzine\"]",
-                    versnellingsbakCode = "M",
-                    aantalVersnellingen = 5,
-                    dataVersion = 2,
-                    lastViewedAt = 0L,
-                    lastFetchedAt = 0L,
-                    maximaleConstructiesnelheidKmh = 180,
-                    isChipped = false,
-                ),
+                previewEntity("PL700K", "VOLVO", "V40", 149.6),
+                previewEntity("56ZKD3", "OPEL", "Corsa", 90.0),
             ),
             myVehicleKenteken = "PL700K",
             myVehicleInfo = VehicleLicensePlateInfo(
@@ -586,13 +460,51 @@ private fun PreviewContent() {
                 aantalVersnellingen = 6,
                 maximaleConstructiesnelheidKmh = 210,
             ),
-            recentWinPercent = mapOf("PL700K" to 55f, "56ZKD3" to 75f),
+            recentWinPercent = mapOf("PL700K" to 55f, "56ZKD3" to 25f),
+            favoriteKentekens = setOf("56ZKD3"),
             myVehicleAverageWinPercent = 55f,
-            errorMessage = null,
         ),
         onEvent = {},
+        listModels = { entities, winMap ->
+            entities.map {
+                nl.designlama.pakkiepakkie.ui.components.VehicleListItemModel(
+                    kenteken = it.kenteken,
+                    title = "${it.merk} ${it.handelsbenaming}",
+                    powerPk = it.vermogenPk?.toInt(),
+                    winPercent = winMap[it.kenteken],
+                    isFavorite = it.kenteken == "56ZKD3",
+                )
+            }
+        },
     )
 }
+
+private fun previewEntity(
+    kenteken: String,
+    merk: String,
+    name: String,
+    pk: Double,
+): VehicleLookupEntity = VehicleLookupEntity(
+    kenteken = kenteken,
+    merk = merk,
+    handelsbenaming = name,
+    massaRijklaarKg = 1420,
+    vermogenKw = pk / 1.36,
+    vermogenPk = pk,
+    massaLedigKg = 1300,
+    cilinderinhoudCc = 1596,
+    vermogenMassaRijklaar = 0.08,
+    primaryBrandstof = "Benzine",
+    hybridKlasse = null,
+    brandstofJson = "[\"Benzine\"]",
+    versnellingsbakCode = "M",
+    aantalVersnellingen = 6,
+    dataVersion = 2,
+    lastViewedAt = 0L,
+    lastFetchedAt = 0L,
+    maximaleConstructiesnelheidKmh = 210,
+    isChipped = false,
+)
 
 @PreviewLightDark
 @Composable

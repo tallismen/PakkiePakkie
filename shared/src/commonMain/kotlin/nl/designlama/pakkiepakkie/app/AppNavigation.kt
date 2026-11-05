@@ -23,6 +23,7 @@ import kotlinx.serialization.Serializable
 import nl.designlama.pakkiepakkie.datastore.OnboardingRepository
 import nl.designlama.pakkiepakkie.ui.HomeScreen
 import nl.designlama.pakkiepakkie.ui.OnboardingScreen
+import nl.designlama.pakkiepakkie.ui.SearchScreen
 import nl.designlama.pakkiepakkie.ui.SettingsScreen
 import nl.designlama.pakkiepakkie.ui.TestMenuScreen
 import nl.designlama.pakkiepakkie.ui.VehicleCompareScreen
@@ -33,6 +34,9 @@ data object OnboardingRoute
 
 @Serializable
 data object HomeRoute
+
+@Serializable
+data object SearchRoute
 
 @Serializable
 data class VehicleDetail(val kenteken: String)
@@ -88,9 +92,25 @@ fun AppNavigation(modifier: Modifier = Modifier) {
                 onOpenVehicleDetail = { k ->
                     navController.navigate(VehicleDetail(kenteken = k))
                 },
-                onOpenSettings = {
+                onOpenSearch = {
+                    navController.navigate(SearchRoute)
+                },
+                onOpenProfile = {
                     navController.navigate(SettingsRoute)
                 },
+            )
+        }
+        composable<SearchRoute> {
+            SearchScreen(
+                onOpenVehicleDetail = { k ->
+                    navController.navigate(VehicleDetail(kenteken = k)) {
+                        popUpTo(SearchRoute) { inclusive = true }
+                    }
+                },
+                onOpenProfile = {
+                    navController.navigate(SettingsRoute)
+                },
+                onBack = { navController.popBackStack() },
             )
         }
         composable<SettingsRoute> {

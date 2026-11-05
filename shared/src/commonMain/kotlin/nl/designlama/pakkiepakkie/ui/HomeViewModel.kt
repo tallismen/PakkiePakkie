@@ -2,94 +2,126 @@ package nl.designlama.pakkiepakkie.ui
 
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import nl.designlama.pakkiepakkie.base.BaseViewModel
 import nl.designlama.pakkiepakkie.base.UIEvent
 import nl.designlama.pakkiepakkie.base.UIState
-import nl.designlama.pakkiepakkie.data.LatestReviewedPlate
-import nl.designlama.pakkiepakkie.data.ReviewRepository
 import nl.designlama.pakkiepakkie.data.VehicleLicenseRepository
 import nl.designlama.pakkiepakkie.data.local.VehicleLookupDataVersion
 import nl.designlama.pakkiepakkie.data.local.VehicleLookupEntity
 import nl.designlama.pakkiepakkie.data.toVehicleLicensePlateInfo
+import nl.designlama.pakkiepakkie.datastore.FavoritesRepository
 import nl.designlama.pakkiepakkie.datastore.UserVehicleRepository
 import nl.designlama.pakkiepakkie.network.chipped.ChippedTuneCalculator
 import nl.designlama.pakkiepakkie.network.rdw.PakkiePakkieCalculator
 import nl.designlama.pakkiepakkie.network.rdw.VehicleLicensePlateInfo
-import nl.designlama.pakkiepakkie.resources.StringResources
-import nl.designlama.pakkiepakkie.ui.components.MAX_RAW_LENGTH
+import nl.designlama.pakkiepakkie.ui.components.VehicleListItemModel
 import nl.designlama.pakkiepakkie.ui.components.sanitizeLicensePlate
 
 data class HomeState(
-    val licensePlateInput: String = "",
-    val loading: Boolean = false,
-    val errorMessage: String? = null,
     val recent: List<VehicleLookupEntity> = emptyList(),
-    val latestReviewed: List<LatestReviewedPlate> = emptyList(),
+    val favorites: List<VehicleLookupEntity> = emptyList(),
+    val favoriteKentekens: Set<String> = emptySet(),
     val myVehicleKenteken: String? = null,
     val myVehicleInfo: VehicleLicensePlateInfo? = null,
     val recentWinPercent: Map<String, Float?> = emptyMap(),
+    val favoriteWinPercent: Map<String, Float?> = emptyMap(),
     /** Average win chance of my vehicle vs other recently viewed plates. */
     val myVehicleAverageWinPercent: Float? = null,
+    val snackbarMessage: String? = null,
 ) : UIState {
-    val canSearch: Boolean get() = licensePlateInput.length == MAX_RAW_LENGTH && !loading
+    val hasMyVehicle: Boolean get() = myVehicleInfo != null
 }
 
 sealed interface HomeEvent : UIEvent {
-    data class OnLicensePlateChange(val raw: String) : HomeEvent
+    data class OnRowClick(val kenteken: String) : HomeEvent
+    data class OnFavoriteClick(val kenteken: String) : HomeEvent
     data object OnSearchClick : HomeEvent
-    data class OnRecentRowClick(val kenteken: String) : HomeEvent
-    data class OnRecentSetMyVehicle(val kenteken: String) : HomeEvent
-    data class OnLatestReviewedClick(val kenteken: String) : HomeEvent
-    data object OnSettingsClick : HomeEvent
+    data object OnFilterClick : HomeEvent
+    data object OnProfileClick : HomeEvent
+    data object OnSnackbarDismissed : HomeEvent
 }
 
 class HomeViewModel(
     private val vehicleLicenseRepository: VehicleLicenseRepository,
     private val userVehicleRepository: UserVehicleRepository,
-    private val reviewRepository: ReviewRepository,
+    private val favoritesRepository: FavoritesRepository,
 ) : BaseViewModel<HomeState, HomeEvent, HomeDirections>() {
 
-    private val lookupMutex = Mutex()
+    private val _snackbar = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val snackbar: SharedFlow<String> = _snackbar.asSharedFlow()
 
     init {
         viewModelScope.launch {
             combine(
                 vehicleLicenseRepository.observeRecent(20),
                 userVehicleRepository.myVehicleKentekenFlow(),
-            ) { recent, myK ->
-                Pair(recent, myK)
-            }.collectLatest { (recent, myK) ->
+                favoritesRepository.favoritesFlow(),
+            ) { recent, myK, favoriteKeys ->
+                Triple(recent, myK, favoriteKeys)
+            }.collectLatest { (recent, myK, favoriteKeys) ->
                 val myInfo = withContext(Dispatchers.Default) {
                     resolveMyVehicleInfo(recent, myK)
                 }
+                val myEntity = myK?.let { k ->
+                    recent.find { sanitizeLicensePlate(it.kenteken) == sanitizeLicensePlate(k) }
+                        ?: vehicleLicenseRepository.getCachedEntity(k)
+                }
+                val favorites = withContext(Dispatchers.Default) {
+                    resolveFavoriteEntities(favoriteKeys, recent)
+                }
                 val winMap = withContext(Dispatchers.Default) {
-                    val myEntity = myK?.let { k ->
-                        recent.find { sanitizeLicensePlate(it.kenteken) == sanitizeLicensePlate(k) }
-                            ?: vehicleLicenseRepository.getCachedEntity(k)
-                    }
-                    buildRecentWinPercentMap(myInfo, myEntity, recent)
+                    buildWinPercentMap(myInfo, myEntity, recent)
+                }
+                val favWinMap = withContext(Dispatchers.Default) {
+                    buildWinPercentMap(myInfo, myEntity, favorites)
                 }
                 val averageWin = withContext(Dispatchers.Default) {
                     averageWinPercentExcludingSelf(myK, winMap)
                 }
                 _state.value = _state.value.copy(
                     recent = recent,
+                    favorites = favorites,
+                    favoriteKentekens = favoriteKeys.map { sanitizeLicensePlate(it) }.toSet(),
                     myVehicleKenteken = myK,
                     myVehicleInfo = myInfo,
                     recentWinPercent = winMap,
+                    favoriteWinPercent = favWinMap,
                     myVehicleAverageWinPercent = averageWin,
                 )
             }
         }
-        viewModelScope.launch {
-            reviewRepository.observeLatestReviewedPlates(20).collectLatest { latest ->
-                _state.value = _state.value.copy(latestReviewed = latest)
-            }
+    }
+
+    fun toListModels(
+        entities: List<VehicleLookupEntity>,
+        winMap: Map<String, Float?>,
+        favorites: Set<String>,
+    ): List<VehicleListItemModel> = entities.map { row ->
+        VehicleListItemModel(
+            kenteken = row.kenteken,
+            title = "${row.merk} ${row.handelsbenaming}".trim(),
+            powerPk = row.vermogenPk?.toInt()
+                ?: row.vermogenKw?.let { (it * 1.36).toInt() },
+            winPercent = winMap[row.kenteken],
+            isFavorite = favorites.contains(sanitizeLicensePlate(row.kenteken)),
+        )
+    }
+
+    private suspend fun resolveFavoriteEntities(
+        keys: List<String>,
+        recent: List<VehicleLookupEntity>,
+    ): List<VehicleLookupEntity> {
+        return keys.mapNotNull { key ->
+            val norm = sanitizeLicensePlate(key)
+            recent.find { sanitizeLicensePlate(it.kenteken) == norm }
+                ?: vehicleLicenseRepository.getCachedEntity(norm)
         }
     }
 
@@ -107,14 +139,14 @@ class HomeViewModel(
             ?.toVehicleLicensePlateInfo()
     }
 
-    private fun buildRecentWinPercentMap(
+    private fun buildWinPercentMap(
         myInfo: VehicleLicensePlateInfo?,
         myEntity: VehicleLookupEntity?,
-        recent: List<VehicleLookupEntity>,
+        rows: List<VehicleLookupEntity>,
     ): Map<String, Float?> {
-        if (myInfo == null) return recent.associate { it.kenteken to null }
+        if (myInfo == null) return rows.associate { it.kenteken to null }
         val myKw = effectiveKw(myInfo, myEntity?.isChipped == true)
-        return recent.associate { row ->
+        return rows.associate { row ->
             val other = row.toVehicleLicensePlateInfo()
             val otherKw = effectiveKw(other, row.isChipped)
             row.kenteken to PakkiePakkieCalculator.winProbabilityPercent(
@@ -148,73 +180,29 @@ class HomeViewModel(
     override fun onEvent(event: HomeEvent) {
         super.onEvent(event)
         when (event) {
-            is HomeEvent.OnLicensePlateChange -> {
-                _state.value = _state.value.copy(licensePlateInput = event.raw, errorMessage = null)
-                if (event.raw.length == MAX_RAW_LENGTH) {
-                    performLookup(event.raw)
-                }
-            }
-            HomeEvent.OnSearchClick -> performLookup(_state.value.licensePlateInput)
-            is HomeEvent.OnRecentRowClick -> {
-                _state.value = _state.value.copy(licensePlateInput = event.kenteken, errorMessage = null)
+            is HomeEvent.OnRowClick -> {
                 navigate(HomeDirections.OpenVehicleDetail(event.kenteken))
             }
-            is HomeEvent.OnLatestReviewedClick -> {
-                _state.value = _state.value.copy(licensePlateInput = event.kenteken, errorMessage = null)
-                navigate(HomeDirections.OpenVehicleDetail(event.kenteken))
-            }
-            is HomeEvent.OnRecentSetMyVehicle -> {
+            is HomeEvent.OnFavoriteClick -> {
                 viewModelScope.launch {
-                    val norm = sanitizeLicensePlate(event.kenteken)
-                    if (norm.length != 6) return@launch
-                    val current = _state.value.myVehicleKenteken?.let { sanitizeLicensePlate(it) }
-                    if (current == norm) {
-                        runCatching { userVehicleRepository.clearMyVehicle() }
-                    } else {
-                        runCatching { userVehicleRepository.setMyVehicle(event.kenteken) }
-                    }
+                    val added = favoritesRepository.toggleFavorite(event.kenteken)
+                    _snackbar.emit(
+                        if (added) SNACKBAR_ADDED else SNACKBAR_REMOVED,
+                    )
                 }
             }
-            HomeEvent.OnSettingsClick -> navigate(HomeDirections.OpenSettings)
+            HomeEvent.OnSearchClick, HomeEvent.OnFilterClick -> {
+                navigate(HomeDirections.OpenSearch)
+            }
+            HomeEvent.OnProfileClick -> navigate(HomeDirections.OpenProfile)
+            HomeEvent.OnSnackbarDismissed -> {
+                _state.value = _state.value.copy(snackbarMessage = null)
+            }
         }
     }
 
-    private fun performLookup(raw: String) {
-        viewModelScope.launch {
-            if (!lookupMutex.tryLock()) return@launch
-            try {
-                val norm = sanitizeLicensePlate(raw)
-                if (norm.length != 6) {
-                    _state.value = _state.value.copy(
-                        loading = false,
-                        errorMessage = StringResources.kentekenMustBeSixChars(),
-                    )
-                    return@launch
-                }
-                _state.value = _state.value.copy(loading = true, errorMessage = null)
-                val recentRow = _state.value.recent.find { sanitizeLicensePlate(it.kenteken) == norm }
-                val fromRecent = recentRow?.takeIf { it.dataVersion >= VehicleLookupDataVersion.FULL }
-                    ?.toVehicleLicensePlateInfo()
-                    ?.takeIf { it.hasSufficientCachedFields() }
-                if (fromRecent != null) {
-                    vehicleLicenseRepository.markRecentlyViewed(norm)
-                    _state.value = _state.value.copy(loading = false)
-                    navigate(HomeDirections.OpenVehicleDetail(norm))
-                    return@launch
-                }
-                val result = vehicleLicenseRepository.loadCachedOrRefresh(raw)
-                result.onSuccess {
-                    _state.value = _state.value.copy(loading = false)
-                    navigate(HomeDirections.OpenVehicleDetail(norm))
-                }.onFailure { error ->
-                    _state.value = _state.value.copy(
-                        loading = false,
-                        errorMessage = error.message ?: error.toString(),
-                    )
-                }
-            } finally {
-                lookupMutex.unlock()
-            }
-        }
+    companion object {
+        const val SNACKBAR_ADDED = "favorite_added"
+        const val SNACKBAR_REMOVED = "favorite_removed"
     }
 }
